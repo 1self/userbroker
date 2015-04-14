@@ -11,16 +11,15 @@ var setLogger = function (newLogger){
 	logger = newLogger;
 };
 
-var processEvent = function(userEvent){
-	logger.info('received a user event', userEvent);
+var processStreamEvent = function(streamEvent){
+	logger.info('processed an event', streamEvent);
 };
 
-var processUser = function(userMessage){
-	logger.info('receied a stream event', userMessage);
+var processUserEvent = function(userEvent){
+	logger.info('processed a user event', userEvent);
 };
-
 
 module.exports = {};
 module.exports.setLogger = setLogger;
-module.exports.processEvent = processEvent;
-module.exports.processUser = processUser;
+module.exports.processStreamEvent = processStreamEvent;
+module.exports.processUserEvent = processUserEvent;
