@@ -1,0 +1,38 @@
+{
+  "name": "userbroker",
+  "version": "0.0.0",
+  "description": "1self user event broker",
+  "homepage": "www.1self.co",
+  "author": {
+    "name": "ed sykes",
+    "email": "ed.sykes@gmail.com"
+  },
+  "repository": "edsykes/userbroker",
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "userbroker",
+    "1self"
+  ],
+  "dependencies": {
+    "lodash": "^3.6.0",
+    "mongodb": "^2.0.27",
+    "redis": "^0.12.1",
+    "winston": "^1.0.0"
+  },
+  "devDependencies": {
+    "grunt-cli": "^0.1.13",
+    "grunt-contrib-jshint": "^0.11.0",
+    "grunt-contrib-nodeunit": "^0.4.1",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-mocha-cli": "^1.12.0",
+    "jshint-stylish": "^1.0.1",
+    "load-grunt-tasks": "^3.1.0",
+    "time-grunt": "^1.1.0"
+  },
+  "scripts": {
+    "test": "grunt"
+  }
+}
