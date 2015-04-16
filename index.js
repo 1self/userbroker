@@ -7,6 +7,7 @@ var redis = require('redis');
 var processor = require('./processor');
 var MongoClient = require('mongodb').MongoClient;
 var winston = require('winston');
+var url = require('url');
 
 winston.add(winston.transports.File, { filename: 'userbroker.log', level: 'debug', json: false, prettyPrint: true });
 
@@ -26,8 +27,10 @@ var redisSubscribe = redis.createClient();
 redisSubscribe.subscribe('events');
 redisSubscribe.subscribe('users');
 
-var url = 'mongodb://localhost:27017/quantifieddev';
-MongoClient.connect(url, function(err, db) {
+var mongoUrl = process.env.DBURI;
+winston.info('using ' + url.parse(mongoUrl).host);
+
+MongoClient.connect(mongoUrl, function(err, db) {
 
 	console.log('connected to db');
 	if(err){
@@ -35,28 +38,24 @@ MongoClient.connect(url, function(err, db) {
 	}
 
 	var users = db.collection('users');
-
-	
-	redisSubscribe.on('message', function(channel, message){
-		winston.info('change');
-		winston.info('message recieved from channel ' + channel);
-		winston.info('dddddddd');
-
-		if(channel === 'events'){
-			winston.info('doing events');
-			winston.info('event message seen', message);
-			var event = JSON.parse(message);	
-			processor.processStreamEvent(event, users);
-		}
-		else if(channel === 'users'){
-			winston.debug('passing message to user processor');
-			var userMessage = JSON.parse(message);
-			processor.processUserEvent(userMessage, users);
-		}
-		else{
-			winston.info('unknown event type');
-		}
-
+	processor.loadUsers(users, function(){
+		redisSubscribe.on('message', function(channel, message){
+			winston.info('message recieved from channel ' + channel);
+			if(channel === 'events'){
+				winston.info('doing events');
+				winston.info('event message seen', message);
+				var event = JSON.parse(message);	
+				processor.processStreamEvent(event, users);
+			}
+			else if(channel === 'users'){
+				winston.debug('passing message to user processor');
+				var userMessage = JSON.parse(message);
+				processor.processUserEvent(userMessage, users);
+			}
+			else{
+				winston.info('unknown event type');
+			}
+		});
 	});
 });
 

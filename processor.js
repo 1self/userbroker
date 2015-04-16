@@ -2,10 +2,10 @@
 var _ = require('lodash');
 var request = require('request');
 var logger = require('winston');
+var crypto = require('crypto');
 
 // Set default node environment to development
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
-
 
 var setLogger = function (newLogger){
 	logger = newLogger;
@@ -24,25 +24,39 @@ var processStreamEvent = function(streamEvent){
 		return;
 	}
 
-	streamEvent.user = user.username;
-	logger.info('bbb');
-	logger.info('making request to flow app');
-	
-
-	var streamEvents = [];
-	streamEvents.push(streamEvent);
-	var options = {
-	  method: 'post',
-	  body: streamEvents,
-	  json: true,
-	  url: 'http://devflow.azurewebsites.net/api/events'
+	if(user.username !== 'ed' || user.username !== 'adrianbanks'){
+		logger.info('event is for user not on the whitelist');
 	}
 
+	logger.info('making request to flow app');
+	var requestBody = {};
+	var userId = crypto.createHmac('sha256', user.username).read();
+	requestBody.userId = userId;
+	requestBody.streamid = user.apps.devflow.streamid;
+	requestBody.writeToken = user.apps.devflow.writeToken;
+	var streamEvents = [];
+	streamEvents.push(streamEvent);
+	requestBody.events = streamEvents;
+
+	var options = {
+	  method: 'post',
+	  body: requestBody,
+	  json: true,
+	  url: 'http://devflow.azurewebsites.net/api/events'
+	};
+
 	request.post(options, function(error, response){
-		logger.info('message brokered', response);
+		logger.info('message brokered', {response: response.statusCode, body: response.body});
 	});
 	logger.info('processed event for user', user.username);
+};
 
+var cacheUser = function(user){
+	users[user.username] = user;
+	_.map(user.streams, function(stream){
+		streamsToUsers[stream.streamid] = user;
+	});
+	logger.debug('mapped ' + user.username + ' streams');
 };
 
 // eas: on any user event we reload the whole user
@@ -51,26 +65,42 @@ var processUserEvent = function(userEvent, userRepository){
 	var condition = {
 		username: userEvent.username
 	};
+
 	userRepository.findOne(condition, function(error, user){
 		if(error){
 			logger.error('error while retrieving user', error);
 			return;
 		}
 
+		cacheUser(user);
+
 		logger.debug('loaded user from database:', user);
-
-		users[user.username] = user;
-		_.map(user.streams, function(stream){
-			streamsToUsers[stream.streamid] = user;
-			logger.debug('mapped ' + stream.streamid + ' to ' + user.username);
-		});
-
 	});
 	
 	logger.info('processed a user event', userEvent);
+};
+
+var loadUsers = function(userRepository, callback){
+	logger.info('loading users');
+	userRepository.find().toArray(function(error, docs){
+		logger.debug('database call complete');
+	
+		if(error){
+			logger.error('error while retrieving all users');
+			return;
+		}
+
+		logger.info('loaded ' + docs.length + ' users from the database');
+		_.map(docs, function(user){
+			cacheUser(user);
+		});
+
+		callback();	
+	});
 };
 
 module.exports = {};
 module.exports.setLogger = setLogger;
 module.exports.processStreamEvent = processStreamEvent;
 module.exports.processUserEvent = processUserEvent;
+module.exports.loadUsers = loadUsers;
