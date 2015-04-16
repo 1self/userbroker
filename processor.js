@@ -14,6 +14,7 @@ var setLogger = function (newLogger){
 var users = {};
 var streamsToUsers = {};
 var cryptoKey = process.env.USERBROKER_CRYPTOKEY;
+var buffers = {};
 
 var processStreamEvent = function(streamEvent){
 	logger.info('processed an event', streamEvent);
@@ -35,6 +36,22 @@ var processStreamEvent = function(streamEvent){
 	}
 
 	logger.info('making request to flow app');
+
+	if(buffers[user.username] === undefined){
+		buffers[user.username] = [];
+	}
+
+	var buffer = buffers[user.username];
+	if(buffer.length < 20){
+		buffer.push(streamEvent);
+		buffers[user.username] = buffer;
+		logger.info('adding to buffer (' + buffer.length + ')');
+		return;
+	}
+
+	buffer.push(streamEvent);
+	logger.info('time to process buffer');
+
 	var requestBody = {};
 	var userId = crypto.createHmac('sha256', cryptoKey).update(user.username).digest('hex');
 	logger.debug('userId generated length', userId.length);
@@ -42,8 +59,9 @@ var processStreamEvent = function(streamEvent){
 	requestBody.userId = userId;
 	requestBody.streamid = user.apps.devflow.streamid;
 	requestBody.writeToken = user.apps.devflow.writeToken;
-	var streamEvents = [];
-	streamEvents.push(streamEvent);
+	
+	var streamEvents = buffer.slice();
+	buffers[user.username] = [];
 	requestBody.events = streamEvents;
 
 	var options = {
