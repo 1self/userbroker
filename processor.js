@@ -13,7 +13,7 @@ var setLogger = function (newLogger){
 
 var users = {};
 var streamsToUsers = {};
-var cryptoKey = process.env.USERBROKERCRYPTOKEY;
+var cryptoKey = process.env.USERBROKER_CRYPTOKEY;
 
 var processStreamEvent = function(streamEvent){
 	logger.info('processed an event', streamEvent);
