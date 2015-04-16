@@ -32,6 +32,7 @@ var processStreamEvent = function(streamEvent){
 	logger.info('making request to flow app');
 	var requestBody = {};
 	var userId = crypto.createHmac('sha256', cryptoKey).update(user.username).digest('hex');
+	logger.debug('userId generated length', userId.length);
 
 	requestBody.userId = userId;
 	requestBody.streamid = user.apps.devflow.streamid;
