@@ -13,6 +13,7 @@ var setLogger = function (newLogger){
 
 var users = {};
 var streamsToUsers = {};
+var cryptoKey = process.env.USERBROKERCRYPTOKEY;
 
 var processStreamEvent = function(streamEvent){
 	logger.info('processed an event', streamEvent);
@@ -24,13 +25,14 @@ var processStreamEvent = function(streamEvent){
 		return;
 	}
 
-	if(user.username !== 'ed' || user.username !== 'adrianbanks'){
+	if(!(user.username === 'ed' || user.username === 'adrianbanks')){
 		logger.info('event is for user not on the whitelist');
 	}
 
 	logger.info('making request to flow app');
 	var requestBody = {};
-	var userId = crypto.createHmac('sha256', user.username).read();
+	var userId = crypto.createHmac('sha256', cryptoKey).update(user.username).digest('hex');
+
 	requestBody.userId = userId;
 	requestBody.streamid = user.apps.devflow.streamid;
 	requestBody.writeToken = user.apps.devflow.writeToken;
