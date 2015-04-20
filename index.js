@@ -11,6 +11,8 @@ var url = require('url');
 
 winston.add(winston.transports.File, { filename: 'userbroker.log', level: 'debug', json: false, prettyPrint: true });
 
+winston.level = 'info';
+
 winston.info('starting...');	
 winston.error("Errors will be logged here");
 winston.warn("Warns will be logged here");
@@ -40,10 +42,7 @@ MongoClient.connect(mongoUrl, function(err, db) {
 	var users = db.collection('users');
 	processor.loadUsers(users, function(){
 		redisSubscribe.on('message', function(channel, message){
-			winston.info('message recieved from channel ' + channel);
 			if(channel === 'events'){
-				winston.info('doing events');
-				winston.info('event message seen', message);
 				var event = JSON.parse(message);	
 				processor.processStreamEvent(event, users);
 			}
