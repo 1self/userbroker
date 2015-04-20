@@ -32,6 +32,23 @@ redisSubscribe.subscribe('users');
 var mongoUrl = process.env.DBURI;
 winston.info('using ' + url.parse(mongoUrl).host);
 
+var users;
+
+var subscribeMessage = function(channel, message){
+	if(channel === 'events'){
+		var event = JSON.parse(message);	
+		processor.processStreamEvent(event, users);
+	}
+	else if(channel === 'users'){
+		winston.debug('passing message to user processor');
+		var userMessage = JSON.parse(message);
+		processor.processUserEvent(userMessage, users);
+	}
+	else{
+		winston.info('unknown event type');
+	}
+};
+
 MongoClient.connect(mongoUrl, function(err, db) {
 
 	console.log('connected to db');
@@ -39,23 +56,9 @@ MongoClient.connect(mongoUrl, function(err, db) {
 		console.log(err);
 	}
 
-	var users = db.collection('users');
+	users = db.collection('users');
 	processor.loadUsers(users, function(){
-		redisSubscribe.on('message', function(channel, message){
-			if(channel === 'events'){
-				var event = JSON.parse(message);	
-				return;
-				processor.processStreamEvent(event, users);
-			}
-			else if(channel === 'users'){
-				winston.debug('passing message to user processor');
-				var userMessage = JSON.parse(message);
-				processor.processUserEvent(userMessage, users);
-			}
-			else{
-				winston.info('unknown event type');
-			}
-		});
+		redisSubscribe.on('message', subscribeMessage);
 	});
 });
 
