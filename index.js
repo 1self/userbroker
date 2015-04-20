@@ -44,6 +44,7 @@ MongoClient.connect(mongoUrl, function(err, db) {
 		redisSubscribe.on('message', function(channel, message){
 			if(channel === 'events'){
 				var event = JSON.parse(message);	
+				return;
 				processor.processStreamEvent(event, users);
 			}
 			else if(channel === 'users'){

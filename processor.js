@@ -17,12 +17,11 @@ var cryptoKey = process.env.USERBROKER_CRYPTOKEY;
 var buffers = {};
 
 var processStreamEvent = function(streamEvent){
-	logger.info('processed an event', streamEvent);
 	var streamid = streamEvent.streamid;
-	logger.info('looking up user for streamid', streamid);
+	logger.debug('looking up user for streamid', streamid);
 	var user = streamsToUsers[streamid];
 	if(user === undefined){
-		logger.info('no user found');
+		logger.debug('no user found');
 		return;
 	}
 
