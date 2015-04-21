@@ -25,13 +25,13 @@ var processStreamEvent = function(streamEvent){
 		return;
 	}
 
+	if(!(user.username === 'ed' || user.username === 'adrianbanks')){
+		logger.info('event is for user not on the whitelist');
+	}
+
 	if(_.intersection(user.apps.devflow.objectTags, streamEvent.objectTags).length === 0){
 		logger.info('event doesnt have devflow tags');
 		return;
-	}
-
-	if(!(user.username === 'ed' || user.username === 'adrianbanks')){
-		logger.info('event is for user not on the whitelist');
 	}
 
 	logger.info('making request to flow app');
