@@ -25,7 +25,7 @@ var processStreamEvent = function(streamEvent){
 		return;
 	}
 
-	if(!(user.username === 'ed' || user.username === 'adrianbanks')){
+	if(!(user.username === 'ed' || user.username === 'adrianbanks' || user.username === 'bbb')){
 		logger.verbose('event is for user not on the whitelist');
 		return;
 	}
@@ -41,15 +41,21 @@ var processStreamEvent = function(streamEvent){
 	}
 
 	var buffer = buffers[user.username];
-	if(buffer.length < 20){
-		buffer.push(streamEvent);
-		buffers[user.username] = buffer;
-		logger.info('adding to buffer (' + buffer.length + ')');
+	buffer.push(streamEvent);
+	buffers[user.username] = buffer;
+	logger.info('adding to buffer (' + buffer.length + ')');
+};
+
+var sendUserEventsToApps = function(user){
+	if(user.apps === undefined){
 		return;
 	}
+	logger.info('sending events to apps', user.username);
+	var buffer = buffers[user.username];
 
-	buffer.push(streamEvent);
-	logger.info('time to process buffer');
+	if(buffer === undefined){
+		return;
+	}
 
 	var requestBody = {};
 	var userId = crypto.createHmac('sha256', cryptoKey).update(user.username).digest('hex');
@@ -71,9 +77,13 @@ var processStreamEvent = function(streamEvent){
 	};
 
 	request.post(options, function(error, response){
-		logger.info('message brokered', {response: response.statusCode, body: response.body});
+		logger.info('messages successfully sent to flow', {response: response.statusCode, body: response.body});
 	});
 	logger.info('processed event for user', user.username);
+};
+
+var sendUsersEventsToApps = function(){
+	_.map(users, sendUserEventsToApps);
 };
 
 var cacheUser = function(user){
@@ -129,3 +139,4 @@ module.exports.setLogger = setLogger;
 module.exports.processStreamEvent = processStreamEvent;
 module.exports.processUserEvent = processUserEvent;
 module.exports.loadUsers = loadUsers;
+module.exports.sendUsersEventsToApps = sendUsersEventsToApps;
