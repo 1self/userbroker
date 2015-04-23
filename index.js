@@ -28,6 +28,7 @@ processor.setLogger(winston);
 var redisSubscribe = redis.createClient();
 redisSubscribe.subscribe('events');
 redisSubscribe.subscribe('users');
+redisSubscribe.subscribe('userbroker');
 
 var mongoUrl = process.env.DBURI;
 winston.info('using ' + url.parse(mongoUrl).host);
@@ -35,6 +36,7 @@ winston.info('using ' + url.parse(mongoUrl).host);
 var users;
 
 var subscribeMessage = function(channel, message){
+	winston.debug(message);
 	if(channel === 'events'){
 		var event = JSON.parse(message);	
 		processor.processStreamEvent(event, users);
@@ -43,6 +45,16 @@ var subscribeMessage = function(channel, message){
 		winston.debug('passing message to user processor');
 		var userMessage = JSON.parse(message);
 		processor.processUserEvent(userMessage, users);
+	}
+	else if(channel === 'userbroker'){
+		if(message === 'sendEventsToApps'){
+			winston.info('asking processor to send users events to apps');
+			processor.sendUsersEventsToApps();
+		} 
+		else if(message.substring(0,7) === 'logging'){
+			winston.level = message.split('=')[1];
+			winston[winston.level]('logging level set to ' + winston.level);
+		}
 	}
 	else{
 		winston.info('unknown event type');
