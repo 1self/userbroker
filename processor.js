@@ -25,7 +25,8 @@ var processStreamEvent = function(streamEvent){
 		return;
 	}
 
-	if(!(user.username === 'ed' || user.username === 'adrianbanks' || user.username === 'bbb')){
+	if(!(user.username === 'ed' || user.username === 'adrianbanks' || user.username === 'm'|| user.username === 'anildigital' || user.username === 'devika' || user.username === 'devaroop' || user.username === 'douglas'
+		)){
 		logger.verbose('event is for user not on the whitelist');
 		return;
 	}
