@@ -9,28 +9,45 @@ var setLogger = function (newLogger){
 	logger = newLogger;
 };
 
-var processEvent = function(streamEvent, user, userRollupByDayRepo){
-	logger.silly('userDailyAggregation: processing event');
+var processEvent = function(streamEvent, user, repos){
+	logger.silly('userDailyAggregation: processing event', streamEvent);
 
-	if(streamEvent._id === undefined || streamEvent.objectTags === undefined || streamEvent.actionTags === undefined || streamEvent.localEventDateTime === undefined){
-		logger.silly('userDailyAggregation: event is malformed');
+	if(streamEvent.objectTags === undefined){
+		logger.debug('userDailyAggregation: missing objectTags');
 		return;
 	}
-	
+
+	if(streamEvent.actionTags === undefined){
+		logger.debug('userDailyAggregation: missing actinTags');
+		return;
+	}
+
+	if(streamEvent.localEventDateTime === undefined){
+		logger.debug('userDailyAggregation: missing localEventDateTime');
+		return;
+	}
+
+	if(user._id === undefined){
+		logger.debug('userDailyAggregation: user is malformed');
+		return;
+	}
+
 	// increment for the current hour
 	var condition = {};
-	condition._id = user._id;
-	condition.objectTags = streamEvent.objectTags;
-	condition.actionTags = streamEvent.actionTags;
+	condition.userId = user._id;
+	condition.objectTags = _.sortBy(streamEvent.objectTags, function(tag){return tag});
+	condition.actionTags = _.sortBy(streamEvent.actionTags, function(tag){return tag});
 	condition.date = streamEvent.localEventDateTime.substring(0, 10);
 	var operation = {
-		'$inc': {}
 	};
 
 	_.map(streamEvent.properties, function(propValue, propKey){
-		if(_.IsNumber(propValue)){
-			var increment = "properties." + propKey + "." + streamEvent.eventLocalDateTime.substring(11, 2);
-			operation.$inc[increment] = propValue;
+		if(_.isNumber(propValue)){
+			var increment = "properties." + propKey + "." + streamEvent.localEventDateTime.substring(11, 13);
+			if(operation['$inc'] === undefined){
+				operation['$inc'] = {};
+			}
+			operation['$inc'][increment] = propValue;
 		}
 	});
 
@@ -38,7 +55,10 @@ var processEvent = function(streamEvent, user, userRollupByDayRepo){
 		upsert: true
 	};
 
-	userRollupByDayRepo.insert(condition, operation, options);
+	logger.silly('calling insert');
+	logger.silly('condition', JSON.stringify(condition));
+	logger.silly('operation', JSON.stringify(operation));
+	repos.userRollupByDay.update(condition, operation, options);
 };
 
 var sendUserEventsToApps = function(user){

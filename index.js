@@ -1,7 +1,4 @@
 'use strict';
-module.exports = function (str) {
-  console.log(str || 'Rainbow');
-};
 
 var redis = require('redis');
 var appBroker = require('./appBroker');
@@ -23,10 +20,10 @@ winston.debug("Debug will be logged here");
 
 var logger = winston;
 
-process.on('uncaughtException', function(err) {
-  winston.error('Caught exception: ' + err);
-  throw err;
-});
+// process.on('uncaughtException', function(err) {
+//   winston.error('Caught exception: ' + err);
+//   throw err;
+// });
 
 var redisSubscribe = redis.createClient();
 redisSubscribe.subscribe('events');
@@ -37,8 +34,10 @@ var mongoUrl = process.env.DBURI || 'mongodb://localhost/quantifieddev';
 logger.info('using ' + url.parse(mongoUrl).host);
 
 var users = {};
-var userRepository;
-var userRollupByDayRepo;
+var repos = {
+	user: {},
+	userRollupByDay: {}
+} 
 var streamsToUsers = {};
 
 var setModuleLogger = function(module){
@@ -89,11 +88,6 @@ var cronDaily = function(module){
 	module.cronDaily(users);
 };
 
-var processEvent = function(module, event, userForStream, userRepository){
-	console.log(module);
-	module.processEvent(event, userForStream, userRepository);
-};
-
 var cronDaily = function(module){
 	module.cronDaily();
 };
@@ -108,7 +102,11 @@ var subscribeMessage = function(channel, message){
 			logger.debug(streamsToUsers);
 			return;
 		}	
-		_.forEach(eventModules, processEvent, event, userForStream, userRepository);
+
+		for (var i = 0; i < eventModules.length; i++) {
+			logger.silly('calling process event');
+			eventModules[i].processEvent(event, userForStream, repos);
+		}
 	}
 	else if(channel === 'users'){
 		logger.debug('passing message to user processor');
@@ -151,14 +149,14 @@ var loadUsers = function(userRepository, callback){
 
 MongoClient.connect(mongoUrl, function(err, db) {	
 
-	console.log('connected to db');
+	logger.info('connected to db');
 	if(err){
 		console.log(err);
 	}
 
-	userRepository = db.collection('users');
-	userRollupByDayRepo = db.collection('userRollupByDay');
-	loadUsers(users, function(){
+	repos.user = db.collection('users');
+	repos.userRollupByDay = db.collection('userRollupByDay');
+	loadUsers(repos.user, function(){
 		redisSubscribe.on('message', subscribeMessage);
 	});
 });
