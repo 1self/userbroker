@@ -4,10 +4,12 @@ module.exports = function (str) {
 };
 
 var redis = require('redis');
-var processor = require('./processor');
+var appBroker = require('./appBroker');
+var userDailyAggregation = require('./userDailyAggregation');
 var MongoClient = require('mongodb').MongoClient;
 var winston = require('winston');
 var url = require('url');
+var _ = require('lodash');
 
 winston.add(winston.transports.File, { filename: 'userbroker.log', level: 'debug', json: false, prettyPrint: true });
 
@@ -19,57 +21,144 @@ winston.warn("Warns will be logged here");
 winston.info("Info will be logged here");
 winston.debug("Debug will be logged here");
 
+var logger = winston;
+
 process.on('uncaughtException', function(err) {
   winston.error('Caught exception: ' + err);
+  throw err;
 });
-
-processor.setLogger(winston);
 
 var redisSubscribe = redis.createClient();
 redisSubscribe.subscribe('events');
 redisSubscribe.subscribe('users');
 redisSubscribe.subscribe('userbroker');
 
-var mongoUrl = process.env.DBURI;
-winston.info('using ' + url.parse(mongoUrl).host);
+var mongoUrl = process.env.DBURI || 'mongodb://localhost/quantifieddev';
+logger.info('using ' + url.parse(mongoUrl).host);
 
-var users;
+var users = {};
+var userRepository;
+var userRollupByDayRepo;
+var streamsToUsers = {};
+
+var setModuleLogger = function(module){
+	module.setLogger(logger);
+};
+
+var eventModules = [];
+eventModules.push(appBroker);
+eventModules.push(userDailyAggregation);
+_.map(eventModules, setModuleLogger);
+
+var setLogger = function(l){
+	logger = l;
+	_.map(eventModules, setModuleLogger);
+};
+
+var cacheUser = function(user){
+	users[user.username] = user;
+	_.map(user.streams, function(stream){
+		logger.info('mapping ' + stream.streamid + ' to ' + user.username);
+		streamsToUsers[stream.streamid] = user;
+	});
+	logger.debug('mapped ' + user.username + ' streams');
+};
+
+// eas: on any user event we reload the whole user
+var processUserEvent = function(userEvent, userRepository){
+	logger.info('loading user into cache', userEvent.username);
+	var condition = {
+		username: userEvent.username
+	};
+
+	userRepository.findOne(condition, function(error, user){
+		if(error){
+			logger.error('error while retrieving user', error);
+			return;
+		}
+
+		cacheUser(user);
+
+		logger.debug('loaded user from database:', user);
+	});
+	
+	logger.info('processed a user event', userEvent);
+};
+
+var cronDaily = function(module){
+	module.cronDaily(users);
+};
+
+var processEvent = function(module, event, userForStream, userRepository){
+	console.log(module);
+	module.processEvent(event, userForStream, userRepository);
+};
+
+var cronDaily = function(module){
+	module.cronDaily();
+};
 
 var subscribeMessage = function(channel, message){
-	winston.debug(message);
+	logger.debug(message);
 	if(channel === 'events'){
-		var event = JSON.parse(message);	
-		processor.processStreamEvent(event, users);
+		var event = JSON.parse(message);
+		var userForStream = streamsToUsers[event.streamid];
+		if(userForStream === undefined){
+			logger.debug('stream doesnt have a user', event.streamid);
+			logger.debug(streamsToUsers);
+			return;
+		}	
+		_.forEach(eventModules, processEvent, event, userForStream, userRepository);
 	}
 	else if(channel === 'users'){
-		winston.debug('passing message to user processor');
+		logger.debug('passing message to user processor');
 		var userMessage = JSON.parse(message);
-		processor.processUserEvent(userMessage, users);
+		processUserEvent(userMessage, users);
 	}
 	else if(channel === 'userbroker'){
-		if(message === 'sendEventsToApps'){
-			winston.info('asking processor to send users events to apps');
-			processor.sendUsersEventsToApps();
+		if(message === 'cron/daily'){
+			logger.info('asking processor to send users events to apps');
+			_.forEach(eventModules, cronDaily);
 		} 
 		else if(message.substring(0,7) === 'logging'){
-			winston.level = message.split('=')[1];
-			winston[winston.level]('logging level set to ' + winston.level);
+			logger.level = message.split('=')[1];
+			logger[logger.level]('logging level set to ' + logger.level);
 		}
 	}
 	else{
-		winston.info('unknown event type');
+		logger.info('unknown event type');
 	}
 };
 
-MongoClient.connect(mongoUrl, function(err, db) {
+var loadUsers = function(userRepository, callback){
+	logger.info('loading users');
+	userRepository.find().toArray(function(error, docs){
+		logger.debug('database call complete');
+	
+		if(error){
+			logger.error('error while retrieving all users');
+			return;
+		}
+
+		logger.info('loaded ' + docs.length + ' users from the database');
+		_.map(docs, function(user){
+			cacheUser(user);
+		});
+
+		callback();	
+	});
+};
+
+MongoClient.connect(mongoUrl, function(err, db) {	
 
 	console.log('connected to db');
 	if(err){
 		console.log(err);
 	}
 
-	users = db.collection('users');
-	processor.loadUsers(users, function(){
+	userRepository = db.collection('users');
+	userRollupByDayRepo = db.collection('userRollupByDay');
+	loadUsers(users, function(){
 		redisSubscribe.on('message', subscribeMessage);
 	});
 });
@@ -79,3 +168,7 @@ MongoClient.connect(mongoUrl, function(err, db) {
 //exports = module.exports = app;
 
 module.exports = {};
+module.exports.subscribeMessage = subscribeMessage;
+module.exports.loadUsers = loadUsers;
+module.exports.setLogger = setLogger;
+
