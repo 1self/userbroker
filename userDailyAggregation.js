@@ -22,8 +22,8 @@ var processEvent = function(streamEvent, user, repos){
 		return;
 	}
 
-	if(streamEvent.localEventDateTime === undefined){
-		logger.debug('userDailyAggregation: missing localEventDateTime');
+	if(streamEvent.dateTime === undefined){
+		logger.debug('userDailyAggregation: missing dateTime');
 		return;
 	}
 
@@ -35,15 +35,14 @@ var processEvent = function(streamEvent, user, repos){
 	// increment for the current hour
 	var condition = {};
 	condition.userId = user._id;
-	condition.objectTags = _.sortBy(streamEvent.objectTags, function(tag){return tag});
-	condition.actionTags = _.sortBy(streamEvent.actionTags, function(tag){return tag});
-	condition.date = streamEvent.localEventDateTime.substring(0, 10);
-	var operation = {
-	};
+	condition.objectTags = _.sortBy(streamEvent.objectTags, function(tag){return tag;});
+	condition.actionTags = _.sortBy(streamEvent.actionTags, function(tag){return tag;});
+	condition.date = streamEvent.dateTime.substring(0, 10);
+	var operation = {};
 
 	_.map(streamEvent.properties, function(propValue, propKey){
 		if(_.isNumber(propValue)){
-			var increment = "properties." + propKey + "." + streamEvent.localEventDateTime.substring(11, 13);
+			var increment = "properties." + propKey + "." + streamEvent.dateTime.substring(11, 13);
 			if(operation['$inc'] === undefined){
 				operation['$inc'] = {};
 			}

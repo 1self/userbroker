@@ -20,10 +20,10 @@ winston.debug("Debug will be logged here");
 
 var logger = winston;
 
-// process.on('uncaughtException', function(err) {
-//   winston.error('Caught exception: ' + err);
-//   throw err;
-// });
+process.on('uncaughtException', function(err) {
+  winston.error('Caught exception: ' + err);
+  throw err;
+});
 
 var redisSubscribe = redis.createClient();
 redisSubscribe.subscribe('events');
@@ -37,7 +37,8 @@ var users = {};
 var repos = {
 	user: {},
 	userRollupByDay: {}
-} 
+};
+
 var streamsToUsers = {};
 
 var setModuleLogger = function(module){
