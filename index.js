@@ -1,7 +1,7 @@
 'use strict';
 
 var redis = require('redis');
-var broker = require('./userBroker.js');
+var broker = require('./userbroker.js');
 var winston = require('winston');
 var MongoClient = require('mongodb').MongoClient;
 var url = require('url');
