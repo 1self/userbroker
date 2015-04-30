@@ -110,9 +110,13 @@ var subscribeMessage = function(channel, message){
 		}
 	}
 	else if(channel === 'users'){
-		logger.debug('passing message to user processor');
+		logger.info('starting to pass message');
+		console.log(message);
+		logger.info('aaa');
+                logger.info(message);
 		var userMessage = JSON.parse(message);
-		processUserEvent(userMessage, users);
+		logger.info('parsed');
+		processUserEvent(userMessage, repos.user);
 	}
 	else if(channel === 'userbroker'){
 		if(message === 'cron/daily'){
