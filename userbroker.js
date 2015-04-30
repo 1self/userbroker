@@ -142,7 +142,7 @@ var setUserRepo = function(userRepo){
 }
 
 var setUserRollupRepo = function(userRollupRepo){
-	repos.userRollupRepo = userRollupRepo;
+	repos.userRollupByDay = userRollupRepo;
 }
 
 
