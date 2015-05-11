@@ -81,7 +81,7 @@ describe('userbroker node module', function () {
   it('passes stream event all processing modules', function () {
     userbroker.subscribeMessage('events', JSON.stringify(streamMessage));
     logger.info(JSON.stringify(logger.messages));
-    assert(_.contains(logger.messages.silly, 'appBroker: processing event') === true, 'appBroker didnt get stream event');
+    assert(_.contains(logger.messages.silly, 'appBroker: testuser: processing event') === true, 'appBroker didnt get stream event');
     assert(_.contains(logger.messages.silly, 'userDailyAggregation: processing event') === true);
   });
 
@@ -95,7 +95,7 @@ describe('userbroker node module', function () {
   	userbroker.setUserRepo(userRepo);
     userbroker.subscribeMessage('users', JSON.stringify(userMessage));
     logger.info(logger.messages);
-    assert(_.contains(logger.messages.debug, 'mapping 1 to testuser') === true, 'testuser streamid not mapped');
+    assert(_.contains(logger.messages.debug, 'userbroker: testuser: mapping 1 to testuser') === true, 'testuser streamid not mapped');
   });
 
 });

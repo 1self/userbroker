@@ -3,7 +3,6 @@
 var appBroker = require('./appBroker');
 var userDailyAggregation = require('./userDailyAggregation');
 var winston = require('winston');
-var url = require('url');
 var _ = require('lodash');
 
 winston.add(winston.transports.File, { filename: 'userbroker.log', level: 'debug', json: false, prettyPrint: true });
@@ -16,7 +15,7 @@ winston.warn("Warns will be logged here");
 winston.info("Info will be logged here");
 winston.debug("Debug will be logged here");
 
-var logger = winston;
+
 
 process.on('uncaughtException', function(err) {
   winston.error('Caught exception: ' + err);
@@ -31,48 +30,66 @@ var repos = {
 
 var streamsToUsers = {};
 
-var setModuleLogger = function(module){
-	module.setLogger(logger);
-};
-
 var eventModules = [];
 eventModules.push(appBroker);
 eventModules.push(userDailyAggregation);
-_.map(eventModules, setModuleLogger);
+
+var logger = {};
 
 var setLogger = function(l){
-	logger = l;
-	_.map(eventModules, setModuleLogger);
+	logger = {
+		info: function(key, message, data){
+			l.info('userbroker: ' + key + ': ' + message, data);
+		},
+		verbose: function(key, message, data){
+			l.verbose('userbroker: ' + key + ': ' + message, data);
+		},
+		error: function(key, message, data){
+			l.error('userbroker: ' + key + ': ' + message, data);
+		},
+		debug: function(key, message, data){
+			l.debug('userbroker: ' + key + ': ' + message, data);
+		},
+		silly: function(key, message, data){
+			l.silly('userbroker: ' + key + ': ' + message, data);
+		}
+	};
+
+	_.map(eventModules, function(module){
+		module.setLogger(l);
+	});
 };
+
+setLogger(winston);
 
 var cacheUser = function(user){
 	users[user.username] = user;
 	_.map(user.streams, function(stream){
-		logger.debug('mapping ' + stream.streamid + ' to ' + user.username);
+		logger.debug(user.username, 'mapping ' + stream.streamid + ' to ' + user.username);
 		streamsToUsers[stream.streamid] = user;
 	});
-	logger.info('mapped ' + user.username + ' streams');
+	logger.info(user.username, 'mapped ' + user.username + ' streams');
 };
 
 // eas: on any user event we reload the whole user
 var processUserEvent = function(userEvent, userRepository){
-	logger.info('loading user into cache', userEvent.username);
+	logger.info(userEvent.username, 'loading user into cache', userEvent.username);
 	var condition = {
 		username: userEvent.username
 	};
 
 	userRepository.findOne(condition, function(error, user){
 		if(error){
-			logger.error('error while retrieving user', error);
+			logger.error(userEvent.username, 'error while retrieving user', error);
 			return;
 		}
 
 		cacheUser(user);
 
-		logger.debug('loaded user from database:', user);
+		logger.debug(userEvent.username, 'loaded user from database:', user);
 	});
 	
-	logger.info('processed a user event', userEvent);
+	logger.info(userEvent.username, 'processed a user event', userEvent);
 };
 
 var cronDaily = function(module){
@@ -84,18 +101,17 @@ var cronDaily = function(module){
 };
 
 var subscribeMessage = function(channel, message){
-	logger.debug(message);
+	logger.debug(channel, message);
 	if(channel === 'events'){
 		var event = JSON.parse(message);
 		var userForStream = streamsToUsers[event.streamid];
 		if(userForStream === undefined){
-			logger.debug('stream doesnt have a user', event.streamid);
-			logger.debug(streamsToUsers);
+			logger.debug(event.streamid, 'stream doesnt have a user: event, event.streamsToUsers', [event, event.streamsToUsers]);
 			return;
 		}	
 
 		for (var i = 0; i < eventModules.length; i++) {
-			logger.silly('calling process event');
+			logger.silly(event.streamid, 'calling process event');
 			eventModules[i].processEvent(event, userForStream, repos);
 		}
 	}
@@ -105,30 +121,30 @@ var subscribeMessage = function(channel, message){
 	}
 	else if(channel === 'userbroker'){
 		if(message === 'cron/daily'){
-			logger.info('asking processor to send users events to apps');
+			logger.info(channel, 'asking processor to send users events to apps');
 			_.forEach(eventModules, cronDaily);
 		} 
 		else if(message.substring(0,7) === 'logging'){
 			logger.level = message.split('=')[1];
-			logger[logger.level]('logging level set to ' + logger.level);
+			logger[logger.level](channel, 'logging level set to ' + logger.level);
 		}
 	}
 	else{
-		logger.info('unknown event type');
+		logger.info(channel, 'unknown event type');
 	}
 };
 
 var loadUsers = function(userRepository, callback){
-	logger.info('loading users');
+	logger.info('loading users', 'start');
 	userRepository.find().toArray(function(error, docs){
-		logger.debug('database call complete');
+		logger.debug('loading users', 'database call complete');
 	
 		if(error){
-			logger.error('error while retrieving all users');
+			logger.error('loading users', 'error while retrieving all users');
 			return;
 		}
 
-		logger.info('loaded ' + docs.length + ' users from the database');
+		logger.info('loading users', 'loaded ' + docs.length + ' users from the database');
 		_.map(docs, function(user){
 			cacheUser(user);
 		});
@@ -139,15 +155,11 @@ var loadUsers = function(userRepository, callback){
 
 var setUserRepo = function(userRepo){
 	repos.user = userRepo;
-}
+};
 
 var setUserRollupRepo = function(userRollupRepo){
 	repos.userRollupByDay = userRollupRepo;
-}
-
-
-// Expose app
-//exports = module.exports = app;
+};
 
 module.exports = {};
 module.exports.subscribeMessage = subscribeMessage;

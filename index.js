@@ -5,7 +5,6 @@ var broker = require('./userbroker.js');
 var winston = require('winston');
 var MongoClient = require('mongodb').MongoClient;
 var url = require('url');
-var _ = require('lodash');
 
 var logger = winston;
 
@@ -21,26 +20,6 @@ redisSubscribe.subscribe('userbroker');
 
 var mongoUrl = process.env.DBURI || 'mongodb://localhost/quantifieddev';
 logger.info('using ' + url.parse(mongoUrl).host);
-
-
-var loadUsers = function(userRepository, callback){
-	logger.info('loading users');
-	userRepository.find().toArray(function(error, docs){
-		logger.debug('database call complete');
-	
-		if(error){
-			logger.error('error while retrieving all users');
-			return;
-		}
-
-		logger.info('loaded ' + docs.length + ' users from the database');
-		_.map(docs, function(user){
-			cacheUser(user);
-		});
-
-		callback();	
-	});
-};
 
 MongoClient.connect(mongoUrl, function(err, db) {	
 
