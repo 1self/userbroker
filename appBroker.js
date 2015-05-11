@@ -9,23 +9,32 @@ console.log(process === undefined);
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 var setLogger = function (newLogger){
-	logger = {
-		info: function(user, message, data){
-			newLogger.info('appBroker: ' + user + ': ' + message, data);
-		},
-		verbose: function(user, message, data){
-			newLogger.verbose('appBroker: ' + user + ': ' + message, data);
-		},
-		error: function(user, message, data){
-			newLogger.error('appBroker: ' + user + ': ' + message, data);
-		},
-		debug: function(user, message, data){
-			newLogger.debug('appBroker: ' + user + ': ' + message, data);
-		},
-		silly: function(user, message, data){
-			newLogger.silly('appBroker: ' + user + ': ' + message, data);
-		}
+	logger = Object.create(newLogger);
+	logger.info = function(key, message, data){
+		data ? newLogger.info('userbroker: ' + key + ': ' + message, data)
+			 : newLogger.info('userbroker: ' + key + ': ' + message);
 	};
+
+	logger.verbose = function(key, message, data){
+		data ? newLogger.verbose('userbroker: ' + key + ': ' + message, data)
+			 : newLogger.verbose('userbroker: ' + key + ': ' + message);
+	};
+	
+	logger.error = function(key, message, data){
+		data ? newLogger.error('userbroker: ' + key + ': ' + message, data)
+			 : newLogger.error('userbroker: ' + key + ': ' + message);
+	};
+	
+	logger.debug = function(key, message, data){
+		data ? newLogger.debug('userbroker: ' + key + ': ' + message, data)
+			 : newLogger.debug('userbroker: ' + key + ': ' + message);
+	};
+
+	logger.silly = function(key, message, data){
+		data ? newLogger.silly('userbroker: ' + key + ': ' + message, data)
+			 : newLogger.silly('userbroker: ' + key + ': ' + message);
+	};
+
 };
 
 var cryptoKey = process.env.USERBROKER_CRYPTOKEY;
@@ -65,10 +74,11 @@ var sendUserEventsToApps = function(user){
 	if(user.apps === undefined){
 		return;
 	}
-	logger.info(user.username, 'sending events to apps', user.username);
+	logger.info(user.username, 'sending events to apps', user.apps);
 	var buffer = buffers[user.username];
 
 	if(buffer === undefined){
+		logger.debug(user.username, 'no buffer');
 		return;
 	}
 
