@@ -98,5 +98,15 @@ describe('userbroker node module', function () {
     assert(_.contains(logger.messages.debug, 'userbroker: testuser: mapping 1 to testuser') === true, 'testuser streamid not mapped');
   });
 
+  it('passes cronDaily message to all modules', function () {
+  	var message = "cron/daily";
+
+  	userbroker.setUserRepo(userRepo);
+    userbroker.subscribeMessage('userbroker', message);
+    logger.info(logger.messages);
+    assert(_.contains(logger.messages.info, 'userbroker: cron/daily: asking processor to send users events to apps') === true, 'cron/daily not processed');
+    assert(_.contains(logger.messages.info, 'appBroker: cron/daily: received') === true, 'cron/daily not processed');
+  });
+
 });
 

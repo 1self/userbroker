@@ -37,22 +37,30 @@ eventModules.push(userDailyAggregation);
 var logger = {};
 
 var setLogger = function(l){
-	logger = {
-		info: function(key, message, data){
-			l.info('userbroker: ' + key + ': ' + message, data);
-		},
-		verbose: function(key, message, data){
-			l.verbose('userbroker: ' + key + ': ' + message, data);
-		},
-		error: function(key, message, data){
-			l.error('userbroker: ' + key + ': ' + message, data);
-		},
-		debug: function(key, message, data){
-			l.debug('userbroker: ' + key + ': ' + message, data);
-		},
-		silly: function(key, message, data){
-			l.silly('userbroker: ' + key + ': ' + message, data);
-		}
+	logger = Object.create(l);
+	logger.info = function(key, message, data){
+		data ? l.info('userbroker: ' + key + ': ' + message, data)
+			 : l.info('userbroker: ' + key + ': ' + message);
+	};
+
+	logger.verbose = function(key, message, data){
+		data ? l.verbose('userbroker: ' + key + ': ' + message, data)
+			 : l.verbose('userbroker: ' + key + ': ' + message);
+	};
+	
+	logger.error = function(key, message, data){
+		data ? l.error('userbroker: ' + key + ': ' + message, data)
+			 : l.error('userbroker: ' + key + ': ' + message);
+	};
+	
+	logger.debug = function(key, message, data){
+		data ? l.debug('userbroker: ' + key + ': ' + message, data)
+			 : l.debug('userbroker: ' + key + ': ' + message);
+	};
+
+	logger.silly = function(key, message, data){
+		data ? l.silly('userbroker: ' + key + ': ' + message, data)
+			 : l.silly('userbroker: ' + key + ': ' + message);
 	};
 
 	_.map(eventModules, function(module){
@@ -96,12 +104,8 @@ var cronDaily = function(module){
 	module.cronDaily(users);
 };
 
-var cronDaily = function(module){
-	module.cronDaily();
-};
-
 var subscribeMessage = function(channel, message){
-	logger.debug(channel, message);
+	logger.info(channel, message);
 	if(channel === 'events'){
 		var event = JSON.parse(message);
 		var userForStream = streamsToUsers[event.streamid];
@@ -120,8 +124,9 @@ var subscribeMessage = function(channel, message){
 		processUserEvent(userMessage, repos.user);
 	}
 	else if(channel === 'userbroker'){
+		logger.info(channel, "recognised");
 		if(message === 'cron/daily'){
-			logger.info(channel, 'asking processor to send users events to apps');
+			logger.info(message, 'asking processor to send users events to apps');
 			_.forEach(eventModules, cronDaily);
 		} 
 		else if(message.substring(0,7) === 'logging'){

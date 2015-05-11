@@ -98,6 +98,7 @@ var sendUserEventsToApps = function(user){
 };
 
 var cronDaily = function(users){
+	logger.info('cron/daily', 'received');
 	_.map(users, sendUserEventsToApps);
 };
 
