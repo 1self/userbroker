@@ -90,10 +90,11 @@ var processEvent = function(streamEvent, user, repos){
 	var condition = {};
 	condition.userId = user._id;
 	condition.objectTags = _.sortBy(streamEvent.objectTags, function(tag){return tag.toLowerCase();});
-	condition.actionTags = _.sortBy(streamEvent.actionTags, function(tag){return tag;});
+	condition.actionTags = _.sortBy(streamEvent.actionTags, function(tag){return tag.toLowerCase();});
 
-	if(_.indexOf(condition.actionTags, 'sync')){
-		logger.debug(user, "ignoring sync event");
+	if(_.indexOf(condition.actionTags, 'sync') >= 0){
+		logger.debug(user.username, "ignoring sync event");
+		return;
 	}
 
 	condition.date = streamEvent.dateTime.substring(0, 10);

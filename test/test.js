@@ -83,19 +83,42 @@ var userRepo = {
 	}
 };
 
-var userRollupsByDay = {
-		events: []
-};
+
 
 var appBrokerRepo = {
-		find: function(){
+	find: function(){
 		return {
 			toArray: function(callback){
-				callback(undefined, [userRollupsByDay]);
+				callback(undefined, [{events: []}]);
 			}
 		};
 	}
 };
+
+var userRollupsRepo = (function(){
+	var existingUserRollups = {
+		events: []
+	};
+	var result = {};
+
+	result.updates = [];
+	result.find = function(){
+		return {
+			toArray: function(callback){
+				callback(undefined, [existingUserRollups]);
+			}
+		};
+	};
+
+	result.update = function(condition, operation){
+		result.updates.push({
+			condition: condition,
+			operation: operation
+		});
+	};
+
+	return result;
+}());
 
 userbroker.setUserRepo(userRepo);
 userbroker.setAppBrokerRepo(appBrokerRepo);
@@ -138,15 +161,40 @@ describe('userbroker node module', function () {
 
 describe('userDailyAggregation node module', function () {
 
+	var repos = {
+		userRollupByDay: userRollupsRepo
+	};
+
   it('ignores lower and upper case sync events sync events', function () {
   	var event = {
   		objectTags: [],
   		actionTags: ['sync'],
-  		dateTime: Date.now()
+  		dateTime: '2015-06-01T13:00:00.000Z'
   	};
 
-    userDailyAggregation.processEvent(event, users[0], userRepo);
+    userDailyAggregation.processEvent(event, users[0], repos);
     assert(_.contains(logger.messages.debug, 'userDailyAggregation: testuser: ignoring sync event') === true);
+  });
+
+  it('all properties are aggregated', function () {
+  	var event = {
+  		objectTags: ['object'],
+  		actionTags: ['action'],
+  		properties: {
+  			prop1: 10,
+  			prop2: 10
+  		},
+  		dateTime: '2015-06-01T13:00:00.000Z'
+  	};
+
+
+    userDailyAggregation.processEvent(event, users[0], repos);
+    logger.info('userRollupsRepo updates: ', userRollupsRepo.updates);
+    assert(userRollupsRepo.updates[0].condition.userId === 1);
+    assert(userRollupsRepo.updates[0].condition.objectTags[0] === 'object');
+    assert(userRollupsRepo.updates[0].condition.actionTags[0] === 'action');
+    assert(userRollupsRepo.updates[0].operation['$inc']['properties.prop1.13'] === 10);
+    assert(userRollupsRepo.updates[0].operation['$inc']['properties.prop2.13'] === 10);
   });
 
   

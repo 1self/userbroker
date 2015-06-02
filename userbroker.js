@@ -125,7 +125,7 @@ var processUserEvent = function(userEvent, userRepository){
 };
 
 var cronDaily = function(module){
-	module.cronDaily(users);
+	module.cronDaily(users, repos);
 };
 
 var subscribeMessage = function(channel, message){
