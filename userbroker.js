@@ -4,18 +4,20 @@ var appBroker = require('./appBroker');
 var userDailyAggregation = require('./userDailyAggregation');
 var winston = require('winston');
 var _ = require('lodash');
-
-winston.add(winston.transports.File, { filename: 'userbroker.log', level: 'debug', json: false, prettyPrint: true });
+var path = require('path');
+var assert = require('assert');
 
 winston.level = 'info';
-
+winston.info('LOGGINGDIR: ' + process.env.LOGGINGDIR);
+assert(process.env.LOGGINGDIR !== undefined);
+var loggingLocation = path.join(process.env.LOGGINGDIR, 'userbroker.log');
+winston.info('Setting up logging to ' + loggingLocation);
+winston.add(winston.transports.File, { filename: loggingLocation, level: 'debug', json: false, prettyPrint: false });
 winston.info('starting...');	
 winston.error("Errors will be logged here");
 winston.warn("Warns will be logged here");
 winston.info("Info will be logged here");
 winston.debug("Debug will be logged here");
-
-
 
 process.on('uncaughtException', function(err) {
   winston.error('Caught exception: ' + err);
@@ -25,7 +27,8 @@ process.on('uncaughtException', function(err) {
 var users = {};
 var repos = {
 	user: {},
-	userRollupByDay: {}
+	userRollupByDay: {},
+	appBroker: {}
 };
 
 var streamsToUsers = {};
@@ -39,28 +42,49 @@ var logger = {};
 var setLogger = function(l){
 	logger = Object.create(l);
 	logger.info = function(key, message, data){
-		data ? l.info('userbroker: ' + key + ': ' + message, data)
-			 : l.info('userbroker: ' + key + ': ' + message);
+		if(data){
+			l.info('userbroker: ' + key + ': ' + message, data);
+		}
+		else {
+			l.info('userbroker: ' + key + ': ' + message);
+		}
 	};
 
 	logger.verbose = function(key, message, data){
-		data ? l.verbose('userbroker: ' + key + ': ' + message, data)
-			 : l.verbose('userbroker: ' + key + ': ' + message);
+		if(data){
+			l.verbose('userbroker: ' + key + ': ' + message, data);
+		}
+		else {
+			l.verbose('userbroker: ' + key + ': ' + message);
+		}
 	};
 	
 	logger.error = function(key, message, data){
-		data ? l.error('userbroker: ' + key + ': ' + message, data)
-			 : l.error('userbroker: ' + key + ': ' + message);
+		if(data){
+			l.error('userbroker: ' + key + ': ' + message, data);
+		}
+		else {
+			l.error('userbroker: ' + key + ': ' + message);
+		}
 	};
 	
 	logger.debug = function(key, message, data){
-		data ? l.debug('userbroker: ' + key + ': ' + message, data)
-			 : l.debug('userbroker: ' + key + ': ' + message);
+		if(data){
+			l.debug('userbroker: ' + key + ': ' + message, data);
+		}
+		else {
+			l.debug('userbroker: ' + key + ': ' + message);
+		}
 	};
 
 	logger.silly = function(key, message, data){
-		data ? l.silly('userbroker: ' + key + ': ' + message, data)
-			 : l.silly('userbroker: ' + key + ': ' + message);
+		if(data) {
+			l.silly('userbroker: ' + key + ': ' + message, data);
+		}
+		else
+		{
+			l.silly('userbroker: ' + key + ': ' + message);
+		}
 	};
 
 	_.map(eventModules, function(module){
@@ -154,6 +178,12 @@ var loadUsers = function(userRepository, callback){
 			cacheUser(user);
 		});
 
+		_.map(eventModules, function(module){
+			if(module.start){
+				module.start(repos);
+			}
+		});
+
 		callback();	
 	});
 };
@@ -166,9 +196,14 @@ var setUserRollupRepo = function(userRollupRepo){
 	repos.userRollupByDay = userRollupRepo;
 };
 
+var setAppBrokerRepo = function(appBrokerRepo){
+	repos.appBroker = appBrokerRepo;
+};
+
 module.exports = {};
 module.exports.subscribeMessage = subscribeMessage;
 module.exports.loadUsers = loadUsers;
 module.exports.setLogger = setLogger;
 module.exports.setUserRepo = setUserRepo;
 module.exports.setUserRollupRepo = setUserRollupRepo;
+module.exports.setAppBrokerRepo = setAppBrokerRepo;

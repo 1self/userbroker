@@ -30,6 +30,8 @@ MongoClient.connect(mongoUrl, function(err, db) {
 
 	broker.setUserRepo(db.collection('users'));
 	broker.setUserRollupRepo(db.collection('userRollupByDay'));
+	broker.setAppBrokerRepo(db.collection('appBroker'));
+
 	broker.loadUsers(db.collection('users'), function(){
 		redisSubscribe.on('message', broker.subscribeMessage);
 	});
