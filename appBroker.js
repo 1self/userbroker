@@ -58,6 +58,7 @@ var setLogger = function (newLogger){
 };
 
 var cryptoKey = process.env.USERBROKER_CRYPTOKEY;
+logger.info('config', 'crypto key is', cryptoKey.substring(0,2));
 var buffers = {};
 
 var addToRepo = function(repo, username, event){
@@ -103,7 +104,7 @@ var start = function(repos){
 	});
 };
 
-var deleteFromDatabase = function(username, event, repo){
+var deleteFromDatabase = function(username, repo){
 	var condition = {
 		username: username,
 	};
@@ -156,12 +157,13 @@ var cronDaily = function(users, repos){
 		logger.info(user.username, 'sending events to apps', user.apps);
 		var buffer = buffers[user.username];
 
-		if(buffer === undefined){
+		if(buffer === undefined || buffer.length === 0){
 			logger.debug(user.username, 'no buffer');
 			return;
 		}
 
 		var requestBody = {};
+		logger.info(user.username, 'trying');
 		var userId = crypto.createHmac('sha256', cryptoKey).update(user.username).digest('hex');
 		logger.debug(user.username, 'userId generated length', userId.length);
 
@@ -182,7 +184,7 @@ var cronDaily = function(users, repos){
 
 		request.post(options, function(error, response){
 			logger.info(user.username, 'messages successfully sent to flow', {response: response.statusCode, body: response.body});
-			deleteFromDatabase(user.username, repos.appbroker);
+			deleteFromDatabase(user.username, repos.appBroker);
 		});
 
 		logger.info(user.username, 'processed event for user', user.username);

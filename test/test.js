@@ -13,7 +13,7 @@ var logger = {
 	messages:{
 		verbose: [],
 		info: [],
-		warning: [],
+		warn: [],
 		debug: [],
 		silly: []
 	}
@@ -32,10 +32,10 @@ logger.info = function(message, meta) {
     logger.messages.info.push(message);
 };
 
-logger.warning = function(message, meta) {
+logger.warn = function(message, meta) {
     console.log(message);
     console.log(JSON.stringify(meta));
-    logger.messages.warning.push(message);
+    logger.messages.warn.push(message);
 };
 
 logger.debug = function(message, meta) {
