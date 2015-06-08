@@ -5,6 +5,42 @@ var logger = require('winston');
 // Set default node environment to development
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
+var reverseSortedIndexLodash = function(array, value, predicate){
+	return _.sortedIndex(array, value, predicate);
+}
+var reverseSortedIndex = function(array, value, predicate){
+	var result = -1;
+
+	var low = 0;
+	var high = array.length;
+	var current = 0;
+	var search = value;
+	while(low < high){
+		// uncomment these lines if you want to see how this algorithm works
+		//console.log('');
+		//console.log('low: ' + low);
+		//console.log('high: ' + high);
+		current = (high + low) >> 1;
+		//console.log('current: ' + current);
+		if(current >= array.length){	
+			current = array.length;
+			break;
+		}
+
+		if(search >= predicate(array[current])){
+			high = current;
+		}
+		else if(search < predicate(array[current])){
+			low = current + 1;
+		}
+		else{
+			break;
+		}
+	}
+	result = low;
+	return result;
+};
+
 var setLogger = function (newLogger){
 	logger = Object.create(newLogger);
 	logger.info = function(key, message, data){
@@ -130,42 +166,58 @@ var processEvent = function(streamEvent, user, repos){
 	repos.userRollupByDay.update(condition, operation, options);
 };
 
+var createDateCard = function(user, repos){
+
+	var card = {};
+	card.type = 'date';
+	card.generatedDate = new Date().toISOString();
+
+	var condition = {
+		_id: user._id,
+	};
+
+	var operation = {
+		$push: {
+			cards: card
+		}
+	};
+
+	var options = {
+		upsert: true
+	};
+
+	logger.debug(user.username, 'Adding date card');
+	repos.user.update(condition, operation, options);
+}
+
 var createCard = function(user, position, rollup, property, repos){
 	logger.debug(user.username, 'Adding top10 card');
-	var html = [];
+	var card = {};
+	card.thumbnailMedia = 'chart.html';
+	card.startRange = rollup.date;
+	card.endRange = rollup.date;
+	card.objectTags = rollup.objectTags;
+	card.actionTags = rollup.actionTags;
+	card.position = position;
+	card.properties = {};
+	card.properties[property] = rollup.sums[property];
+	card.generatedDate = new Date().toISOString();
+	card.cardText = '';
 
-	html.push('<header>');
-	if(position === 0){
-		html.push('<h1>Best ever day</h1>');
+	if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
+		var positionText;
+		if(position === 0){
+			positionText = '';
+		} 
+		else if(position === 1){
+			positionText = '2nd ';
+		} 
+		else {
+			positionText = '' + (position + 1) + 'rd ';
+		}
+
+		card.cardText = positionText + 'highest minutes of coding';
 	}
-	else if(position === 1){
-		html.push('<h1>2nd best day</h1>');
-	}
-	else if(position === 2){
-		html.push('<h1>3rd best day</h1>');
-	}
-	else{
-		html.push('<h1>' + (position+1) + 'th best day');
-	}
-	
-	html.push('<h2><ul>');
-	for(var oTag in rollup.objectTags){
-		html.push('<li>');
-		html.push(oTag);
-		html.push('</li>');
-	}
-	for(var aTag in rollup.actionTags){
-		html.push('<li>');
-		html.push(aTag);
-		html.push('</li>');
-	}
-	html.push('</ul></h2');
-	html.push('</header>');
-	html.push('<nav>');
-	html.push('<a href="/v1/me/events/' + rollup.objectTags.toString() + '/' + rollup.actionTags.toString() + 'sum(' + property + ')/daily/.barchart">this week</a>');
-	html.push('<a href="/v1/me/events/' + rollup.objectTags.toString() + '/' + rollup.actionTags.toString() + 'sum(' + property + ')/daily/.barchart">this month</a>');
-	html.push('<a href="/v1/me/events/' + rollup.objectTags.toString() + '/' + rollup.actionTags.toString() + 'sum(' + property + ')/daily/.barchart">this year</a>');
-	html.push('</nav>');
 
 	var condition = {
 		_id: rollup.userId,
@@ -173,9 +225,7 @@ var createCard = function(user, position, rollup, property, repos){
 
 	var operation = {
 		$push: {
-			cards: {
-				front: html.join('')
-			}
+			cards: card
 		}
 	};
 
@@ -208,28 +258,9 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 	repos.userRollupByDay.find(condition).limit(10).toArray(function(error, top10){
 		logger.debug(user.username, 'retrieved the top10');
-			var top10Index = -1;
-
-			var low = 0;
-			var high = top10.length;
-			var mid = 0;
-			var search = rollup.sums[property];
-			while(low <= high){
-				mid = (high + low) >> 1;
-				if(mid >= top10.length){
-					mid = top10.length;
-					break;
-				}
-
-				if(search >= top10[mid].sums[property]){
-					high = mid - 1;
-				}
-				else{
-					low = mid + 1;
-				}
-			}
-			// position is human, change indexing to be 1 based.
-			top10Index = mid;
+			var top10Index = _.sortedIndex(top10, rollup, function(r){
+				return -(r.sums[property]);
+			})
 
 			if(top10Index >= 10){
 				logger.debug(user.username, 'rollup didnt make it in top10');
@@ -242,11 +273,16 @@ var createTop10Insight = function(user, rollup, property, repos){
 };
 
 var createDailyInsightCards = function(user, repos){
-	var yesterday = new Date().toISOString().substring(0, 10); 
+	createDateCard(user, repos);
+
+	var d = new Date();
+	d.setDate(d.getDate() - 1);
+	var yesterday = d.toISOString().substring(0, 10); 
 	var condition = {
 		userId: user._id,
 		date: yesterday
 	};
+
 
 	logger.info(user.username, 'creating daily insights');
 	logger.debug(user.username, 'daily insights condition: ', condition);
@@ -272,3 +308,5 @@ module.exports = {};
 module.exports.setLogger = setLogger;
 module.exports.processEvent = processEvent;
 module.exports.cronDaily = cronDaily;
+module.exports.reverseSortedIndexLodash = reverseSortedIndexLodash;
+module.exports.reverseSortedIndex = reverseSortedIndex;

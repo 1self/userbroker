@@ -135,6 +135,11 @@ var processEvent = function(streamEvent, user, repos){
 		return;
 	}
 
+	if(user.apps === undefined || user.apps.devflow === undefined){
+		logger.debug(user.username, 'doesnt have the devflow app');
+		return; 
+	}
+
 	if(_.intersection(user.apps.devflow.objectTags, streamEvent.objectTags).length === 0){
 		logger.info(user.username, 'event doesnt have devflow tags');
 		return;
