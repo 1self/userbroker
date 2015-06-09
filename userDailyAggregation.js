@@ -169,6 +169,7 @@ var processEvent = function(streamEvent, user, repos){
 var createDateCard = function(user, repos){
 
 	var card = {};
+	card.id = repos.idGenerator();
 	card.type = 'date';
 	card.generatedDate = new Date().toISOString();
 
@@ -193,6 +194,8 @@ var createDateCard = function(user, repos){
 var createCard = function(user, position, rollup, property, repos){
 	logger.debug(user.username, 'Adding top10 card');
 	var card = {};
+	card.id = repos.idGenerator();
+	card.type = "top10";
 	card.thumbnailMedia = 'chart.html';
 	card.startRange = rollup.date;
 	card.endRange = rollup.date;

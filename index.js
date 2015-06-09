@@ -4,6 +4,7 @@ var redis = require('redis');
 var broker = require('./userbroker.js');
 var winston = require('winston');
 var MongoClient = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
 var url = require('url');
 
 var logger = winston;
@@ -31,6 +32,9 @@ MongoClient.connect(mongoUrl, function(err, db) {
 	broker.setUserRepo(db.collection('users'));
 	broker.setUserRollupRepo(db.collection('userRollupByDay'));
 	broker.setAppBrokerRepo(db.collection('appBroker'));
+	broker.setIdGenerator(function(){
+		return new ObjectID();
+	});
 
 	broker.loadUsers(db.collection('users'), function(){
 		redisSubscribe.on('message', broker.subscribeMessage);

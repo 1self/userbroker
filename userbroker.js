@@ -200,6 +200,10 @@ var setAppBrokerRepo = function(appBrokerRepo){
 	repos.appBroker = appBrokerRepo;
 };
 
+var setIdGenerator = function(generator){
+	repos.idGenerator = generator;
+}
+
 module.exports = {};
 module.exports.subscribeMessage = subscribeMessage;
 module.exports.loadUsers = loadUsers;
@@ -207,3 +211,4 @@ module.exports.setLogger = setLogger;
 module.exports.setUserRepo = setUserRepo;
 module.exports.setUserRollupRepo = setUserRollupRepo;
 module.exports.setAppBrokerRepo = setAppBrokerRepo;
+module.exports.setIdGenerator = setIdGenerator;
