@@ -148,10 +148,10 @@ var processEvent = function(streamEvent, user, repos){
 			}
 			operation['$inc'][increment] = propValue;
 
-			var incrementSums = "sums." + propKey;
+			var incrementSums = "sum." + propKey;
 			operation['$inc'][incrementSums] = propValue;
 
-			var incrementCounts = "counts." + propKey;
+			var incrementCounts = "count." + propKey;
 			operation['$inc'][incrementCounts] = 1;
 		}
 	});
@@ -203,9 +203,9 @@ var createCard = function(user, position, rollup, property, repos){
 	card.actionTags = rollup.actionTags;
 	card.position = position;
 	card.properties = {};
-	card.properties[property] = rollup.sums[property];
+	card.properties[property] = rollup.sum[property];
 	card.generatedDate = new Date().toISOString();
-	card.cardText = '';
+	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, 'sum', property, '.json'].join('/');
 
 	if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
 		var positionText;
@@ -250,11 +250,11 @@ var createTop10Insight = function(user, rollup, property, repos){
 		},
 		$orderby: {}
 	};
-	condition.$orderby['sums.' + property] = -1;
+	condition.$orderby['sum.' + property] = -1;
 
 	var projection = {
 		date: true,
-		sums: true
+		sum: true
 	};
 
 	logger.debug(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
@@ -262,7 +262,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 	repos.userRollupByDay.find(condition).limit(10).toArray(function(error, top10){
 		logger.debug(user.username, 'retrieved the top10');
 			var top10Index = _.sortedIndex(top10, rollup, function(r){
-				return -(r.sums[property]);
+				return -(r.sum[property]);
 			})
 
 			if(top10Index >= 10){
@@ -293,8 +293,8 @@ var createDailyInsightCards = function(user, repos){
 	repos.userRollupByDay.find(condition).toArray(function(error, yesterdaysRollups){
 		logger.debug(user.username, 'found rollups for yesterday: ', yesterdaysRollups.length);
 		for(var i = 0; i < yesterdaysRollups.length; i++){
-			logger.debug(user.username, 'creating insights for actionTags, objectTags, sums:', [yesterdaysRollups.actionTags, yesterdaysRollups.objectTags, yesterdaysRollups.sums]);
-			for(var property in yesterdaysRollups[i].sums){
+			logger.debug(user.username, 'creating insights for actionTags, objectTags, sum:', [yesterdaysRollups.actionTags, yesterdaysRollups.objectTags, yesterdaysRollups.sum]);
+			for(var property in yesterdaysRollups[i].sum){
 				createTop10Insight(user, yesterdaysRollups[i], property, repos);
 			}
 		}
