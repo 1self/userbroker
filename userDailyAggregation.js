@@ -131,13 +131,34 @@ var processEvent = function(streamEvent, user, repos){
 	condition.actionTags = condition.actionTags.map(function(tag){return tag.toLowerCase();});
 
 
-	if(_.indexOf(condition.actionTags, 'sync') >= 0){
+	if(_.indexOf(condition.objectTags, 'sync') >= 0){
 		logger.debug(user.username, "ignoring sync event");
 		return;
 	}
 
 	condition.date = streamEvent.dateTime.substring(0, 10);
 	var operation = {};
+
+	// adding in the count here ensures that every event type will
+	// appear in the rollup. Count is represented by #
+	streamEvent.properties['#'] = 1;
+
+	var explodedLabels = [];
+	for(var property in streamEvent.properties){
+		if(false === _.isNumber(streamEvent.properties[property])){
+			var key = [property, ':', streamEvent.properties[property].replace(/\./g,'^')].join('');
+			explodedLabels.push(key);
+		}
+	}
+
+	for(var prop in streamEvent.properties){
+		if(_.isNumber(streamEvent.properties[prop])){
+			for (var i = 0; i < explodedLabels.length; i++) {
+				var key = explodedLabels[i] + '/' + prop;
+				streamEvent.properties[key] = streamEvent.properties[prop];
+			}
+		}
+	}
 
 	_.map(streamEvent.properties, function(propValue, propKey){
 		if(_.isNumber(propValue)){
@@ -202,7 +223,7 @@ var createCard = function(user, position, rollup, property, repos){
 	card.objectTags = rollup.objectTags;
 	card.actionTags = rollup.actionTags;
 	card.position = position;
-	card.properties = {};
+	card.properties = {};	
 	card.properties[property] = rollup.sum[property];
 	card.generatedDate = new Date().toISOString();
 	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, 'sum', property, '.json'].join('/');
@@ -259,13 +280,13 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 	logger.debug(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
 
-	repos.userRollupByDay.find(condition).limit(10).toArray(function(error, top10){
+	repos.userRollupByDay.find(condition).limit(1000).toArray(function(error, top10){
 		logger.debug(user.username, 'retrieved the top10');
 			var top10Index = _.sortedIndex(top10, rollup, function(r){
 				return -(r.sum[property]);
 			})
 
-			if(top10Index >= 10){
+			if(top10Index >= 1000){
 				logger.debug(user.username, 'rollup didnt make it in top10');
 				return;
 			}
