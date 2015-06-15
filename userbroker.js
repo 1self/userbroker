@@ -110,6 +110,15 @@ var processUserEvent = function(userEvent, userRepository){
 		username: userEvent.username
 	};
 
+	// when we go to the database, we leave the node event loop, this means that messages could come 
+	// in for the new stream and we wouldn't know they are attached to the user. This means
+	// we need to process the attaching stream here. 
+	var streamIdAdded = userEvent.streamidAdded;
+	if(streamIdAdded){
+		streamsToUsers[streamIdAdded] = users[userEvent.username];
+		logger.debug(userEvent.username, ["added mapping from ", streamIdAdded].join(''));
+	}
+
 	userRepository.findOne(condition, function(error, user){
 		if(error){
 			logger.error(userEvent.username, 'error while retrieving user', error);
