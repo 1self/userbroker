@@ -5,6 +5,9 @@ var logger = require('winston');
 // Set default node environment to development
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
+// you can type this character on a mac using shift+option+\
+var MEASURE_DELIMITER = '»'
+
 var reverseSortedIndexLodash = function(array, value, predicate){
 	return _.sortedIndex(array, value, predicate);
 }
@@ -144,37 +147,56 @@ var processEvent = function(streamEvent, user, repos){
 	streamEvent.properties['#'] = 1;
 
 	var explodedLabels = [];
-	for(var property in streamEvent.properties){
-		if(false === _.isNumber(streamEvent.properties[property])){
-			var key = [property, ':', streamEvent.properties[property].replace(/\./g,'^')].join('');
-			explodedLabels.push(key);
-		}
-	}
+	var measures = {};
+	var explode = function(properties, labels, measurePrefix){
+		for(var property in properties){
+			var propertyValue = properties[property];
+			if(_.isString(propertyValue)){
+				var key = [property, properties[property].replace(/\./g,'^')].join(MEASURE_DELIMITER);
+				explodedLabels.push(key);
+			}
+			else if(_.isArray(propertyValue)){
+				_.each(propertyValue, function(e){
+					if(_.isString(e) === false){
+						return;
+					}
 
-	for(var prop in streamEvent.properties){
-		if(_.isNumber(streamEvent.properties[prop])){
-			for (var i = 0; i < explodedLabels.length; i++) {
-				var key = explodedLabels[i] + '/' + prop;
-				streamEvent.properties[key] = streamEvent.properties[prop];
+					var key = [property, e.replace(/\./g,'^')].join(MEASURE_DELIMITER);
+					explodedLabels.push(key);
+				});
+			}
+			else if(_.isObject(propertyValue)){
+				var newPrefix = measurePrefix ? [measurePrefix, property].join(MEASURE_DELIMITER) : property;
+				explode(propertyValue, labels, newPrefix);
+			}
+			else if(_.isNumber(propertyValue)){
+				var measureKey = measurePrefix ? [measurePrefix, property].join(MEASURE_DELIMITER) : property;
+				measures[measureKey] = propertyValue;
 			}
 		}
 	}
 
-	_.map(streamEvent.properties, function(propValue, propKey){
-		if(_.isNumber(propValue)){
+	explode(streamEvent.properties, explodedLabels, '');
 
-			var increment = "properties." + propKey + "." + streamEvent.dateTime.substring(11, 13);
-			if(operation['$inc'] === undefined){
-				operation['$inc'] = {};
-			}
-			operation['$inc'][increment] = propValue;
-
-			var incrementSums = "sum." + propKey;
-			operation['$inc'][incrementSums] = propValue;
-
-			var incrementCounts = "count." + propKey;
-			operation['$inc'][incrementCounts] = 1;
+	for(var prop in measures){
+		for (var i = 0; i < explodedLabels.length; i++) {
+			var key = [explodedLabels[i], prop].join(MEASURE_DELIMITER);
+			measures[key] = measures[prop];
 		}
+	}
+
+	_.map(measures, function(propValue, propKey){
+		var increment = "properties." + propKey + "." + streamEvent.dateTime.substring(11, 13);
+		if(operation['$inc'] === undefined){
+			operation['$inc'] = {};
+		}
+		operation['$inc'][increment] = propValue;
+
+		var incrementSums = "sum." + propKey;
+		operation['$inc'][incrementSums] = propValue;
+
+		var incrementCounts = "count." + propKey;
+		operation['$inc'][incrementCounts] = 1;
 	});
 
 	var options = {
