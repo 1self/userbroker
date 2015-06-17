@@ -234,7 +234,7 @@ var createDateCard = function(user, repos){
 	repos.user.update(condition, operation, options);
 }
 
-var createCard = function(user, position, rollup, property, repos){
+var createtop10Card = function(user, position, rollup, property, repos){
 	logger.debug(user.username, 'Adding top10 card');
 	var card = {};
 	card.id = repos.idGenerator();
@@ -258,11 +258,137 @@ var createCard = function(user, position, rollup, property, repos){
 		else if(position === 1){
 			positionText = '2nd ';
 		} 
-		else {
-			positionText = '' + (position + 1) + 'rd ';
+		else if(position === 2) {
+			positionText = '3rd ';	
+		}
+		else{
+			positionText = '' + (position + 1) + 'th ';
 		}
 
 		card.cardText = positionText + 'highest minutes of coding';
+	}
+
+	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '#'){
+		var positionText;
+		if(position === 0){
+			positionText = '';
+		} 
+		else if(position === 1){
+			positionText = '2nd ';
+		} 
+		else if(position === 2) {
+			positionText = '3rd ';	
+		}
+		else{
+			positionText = '' + (position + 1) + 'th ';
+		}
+		card.cardText = positionText + 'highest ever number of pushes';
+	}
+
+	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === 'commits'){
+		var positionText;
+		if(position === 0){
+			positionText = '';
+		} 
+		else if(position === 1){
+			positionText = '2nd ';
+		} 
+		else if(position === 2) {
+			positionText = '3rd ';	
+		}
+		else{
+			positionText = '' + (position + 1) + 'th ';
+		}
+
+		card.cardText = positionText + 'highest ever number of commits';
+	}
+
+	var condition = {
+		_id: rollup.userId,
+	};
+
+	var operation = {
+		$push: {
+			cards: card
+		}
+	};
+
+	var options = {
+		upsert: true
+	};
+
+	logger.debug(user.username, 'Adding card, condition, operation, options', [condition, operation, options]);
+	repos.user.update(condition, operation, options);
+};
+
+var createBottom10Card = function(user, position, rollup, property, repos){
+	logger.debug(user.username, 'Adding bottom10 card');
+	var card = {};
+	card.id = repos.idGenerator();
+	card.type = "bottom10";
+	card.thumbnailMedia = 'chart.html';
+	card.startRange = rollup.date;
+	card.endRange = rollup.date;
+	card.objectTags = rollup.objectTags;
+	card.actionTags = rollup.actionTags;
+	card.position = position;
+	card.properties = {};	
+	card.properties[property] = rollup.sum[property];
+	card.generatedDate = new Date().toISOString();
+	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, 'sum', property, '.json'].join('/');
+
+	if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
+		var positionText;
+		if(position === 0){
+			positionText = '';
+		} 
+		else if(position === 1){
+			positionText = '2nd ';
+		} 
+		else if(position === 2) {
+			positionText = '3rd ';	
+		}
+		else{
+			positionText = '' + (position + 1) + 'th ';
+		}
+
+		card.cardText = positionText + 'lowest minutes of coding';
+	}
+
+	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '#'){
+		var positionText;
+		if(position === 0){
+			positionText = '';
+		} 
+		else if(position === 1){
+			positionText = '2nd ';
+		} 
+		else if(position === 2) {
+			positionText = '3rd ';	
+		}
+		else{
+			positionText = '' + (position + 1) + 'th ';
+		}
+
+		card.cardText = positionText + 'lowest ever number of pushes';
+	}
+
+	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === 'commits'){
+		var positionText;
+		if(position === 0){
+			positionText = '';
+		} 
+		else if(position === 1){
+			positionText = '2nd ';
+		} 
+		else if(position === 2) {
+			positionText = '3rd ';	
+		}
+		else{
+			positionText = '' + (position + 1) + 'th ';
+		}
+
+		card.cardText = positionText + 'lowest ever number of commits';
 	}
 
 	var condition = {
@@ -293,6 +419,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 		},
 		$orderby: {}
 	};
+	condition.$query['sum.' + property] = {$exists: true};
 	condition.$orderby['sum.' + property] = -1;
 
 	var projection = {
@@ -302,19 +429,67 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 	logger.debug(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
 
-	repos.userRollupByDay.find(condition).limit(1000).toArray(function(error, top10){
+	repos.userRollupByDay.find(condition).limit(10).toArray(function(error, top10){
 		logger.debug(user.username, 'retrieved the top10');
+			if(top10.length <= 3){
+				logger.debug(user.username, 'Less than 3 entries in top 10: ', property);
+				return;
+			}
+
 			var top10Index = _.sortedIndex(top10, rollup, function(r){
 				return -(r.sum[property]);
 			})
 
-			if(top10Index >= 1000){
+			if(top10Index >= 10){
 				logger.debug(user.username, 'rollup didnt make it in top10');
 				return;
 			}
 
+
 			logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
-			createCard(user, top10Index, rollup, property, repos);
+			createtop10Card(user, top10Index, rollup, property, repos);
+	});
+};
+
+var createBottom10Insight = function(user, rollup, property, repos){
+	logger.debug(user.username, 'analyzing bottom10');
+	var condition = {
+		$query: {
+			userId: rollup.userId,
+			actionTags: rollup.actionTags,
+			objectTags: rollup.objectTags
+		},
+		$orderby: {}
+	};
+	condition.$query['sum.' + property] = {$exists: true};
+	condition.$orderby['sum.' + property] = 1;
+
+	var projection = {
+		date: true,
+		sum: true
+	};
+
+	logger.debug(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
+
+	repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
+		logger.debug(user.username, 'retrieved the bottom10');
+			if(bottom10.length <= 3){
+				logger.debug(user.username, 'Less than 3 entries in bottom 10: ', property);
+				return;
+			}
+
+			var bottom10Index = _.sortedIndex(bottom10, rollup, function(r){
+				return r.sum[property];
+			})
+
+			if(bottom10Index >= 10){
+				logger.debug(user.username, 'rollup didnt make it in bottom 10');
+				return;
+			}
+
+
+			logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
+			createBottom10Card(user, bottom10Index, rollup, property, repos);
 	});
 };
 
@@ -339,9 +514,12 @@ var createDailyInsightCards = function(user, repos){
 			logger.debug(user.username, 'creating insights for actionTags, objectTags, sum:', [yesterdaysRollups.actionTags, yesterdaysRollups.objectTags, yesterdaysRollups.sum]);
 			for(var property in yesterdaysRollups[i].sum){
 				createTop10Insight(user, yesterdaysRollups[i], property, repos);
+				createBottom10Insight(user, yesterdaysRollups[i], property, repos);
 			}
 		}
 	});
+
+	logger.info(user.username, 'finished creating insights');
 };
 
 var cronDaily = function(users, repos){
