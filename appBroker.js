@@ -98,6 +98,9 @@ var addToMemory = function(username, event){
 
 var start = function(repos){
 	repos.appBroker.find().toArray(function(error, docs){
+		if(docs === undefined || docs.length === 0){
+			return;
+		}
 		_.map(docs[0].events, function(event){
 			addToMemory(docs[0].username, event);
 		});
