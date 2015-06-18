@@ -266,7 +266,7 @@ var createtop10Card = function(user, position, rollup, property, repos){
 	card.actionTags = rollup.actionTags;
 	card.position = position;
 	card.properties = {};	
-	setDescendantProp(card.properties, property, getDescendantProp(rollup, property));
+	_.set(card.properties, property, _.get(rollup, property));
 	card.generatedDate = new Date().toISOString();
 	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
@@ -357,7 +357,7 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 	card.actionTags = rollup.actionTags;
 	card.position = position;
 	card.properties = {};	
-	setDescendantProp(card.properties, property, getDescendantProp(rollup, property));
+	_.set(card.properties, property, _.get(rollup, property));
 	card.generatedDate = new Date().toISOString();
 	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
@@ -541,7 +541,7 @@ var createDailyInsightCards = function(user, repos){
 				createBottom10Insight(user, rollup, propertyPath, repos);
 			}
 			else if(_.isObject(propertyVal)){
-				createInsightForRollup(propertyPath, user, rollup[property], repos, rollup);
+				createInsightForRollup(propertyPath, user, properties[property], repos, rollup);
 			}
 		}
 	}
