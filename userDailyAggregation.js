@@ -461,7 +461,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 			}
 
 			var top10Index = _.sortedIndex(top10, rollup, function(r){
-				return -(r.sum[property]);
+				return -(_.get(r, property));
 			})
 
 			if(top10Index >= 10){
@@ -503,7 +503,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 			}
 
 			var bottom10Index = _.sortedIndex(bottom10, rollup, function(r){
-				return r.sum[property];
+				return _.get(r, property);
 			})
 
 			if(bottom10Index >= 10){
