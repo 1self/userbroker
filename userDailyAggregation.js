@@ -453,7 +453,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 	logger.debug(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
 
-	repos.userRollupByDay.find(condition).limit(10).toArray(function(error, top10){
+	repos.userRollupByDay.find(condition).limit(100).toArray(function(error, top10){
 		logger.debug(user.username, 'retrieved the top10');
 			if(top10.length <= 3){
 				logger.debug(user.username, 'Less than 3 entries in top 10: ', property);
@@ -464,7 +464,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 				return -(_.get(r, property));
 			})
 
-			if(top10Index >= 10){
+			if(top10Index >= 100){
 				logger.debug(user.username, 'rollup didnt make it in top10');
 				return;
 			}
@@ -495,7 +495,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 
 	logger.debug(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
 
-	repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
+	repos.userRollupByDay.find(condition).limit(100).toArray(function(error, bottom10){
 		logger.debug(user.username, 'retrieved the bottom10');
 			if(bottom10.length <= 3){
 				logger.debug(user.username, 'Less than 3 entries in bottom 10: ', property);
@@ -506,7 +506,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				return _.get(r, property);
 			})
 
-			if(bottom10Index >= 10){
+			if(bottom10Index >= 100){
 				logger.debug(user.username, 'rollup didnt make it in bottom 10');
 				return;
 			}
