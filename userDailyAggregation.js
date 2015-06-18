@@ -6,7 +6,7 @@ var logger = require('winston');
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 // you can type this character on a mac using shift+option+\
-var MEASURE_DELIMITER = '»'
+var MEASURE_DELIMITER = '.'
 
 var reverseSortedIndexLodash = function(array, value, predicate){
 	return _.sortedIndex(array, value, predicate);
@@ -234,6 +234,26 @@ var createDateCard = function(user, repos){
 	repos.user.update(condition, operation, options);
 }
 
+function getDescendantProp(obj, desc) {
+    var arr = desc.split(".");
+    while(arr.length && (obj = obj[arr.shift()]));
+    return obj;
+}
+
+function setDescendantProp(obj, desc, value) {
+    var arr = desc.split(".");
+    var currentObj = obj;
+    for (var i = 0; i < arr.length; i++) {
+    	if(i === arr.length - 1){
+    		currentObj[arr[i]]		 = value;
+    	}
+    	else{
+    		currentObj[arr[i]] = currentObj[arr[i]] === undefined ? {} : currentObj[arr[i]];
+    		currentObj = obj[arr[i]];
+    	}
+    };
+}
+
 var createtop10Card = function(user, position, rollup, property, repos){
 	logger.debug(user.username, 'Adding top10 card');
 	var card = {};
@@ -246,9 +266,9 @@ var createtop10Card = function(user, position, rollup, property, repos){
 	card.actionTags = rollup.actionTags;
 	card.position = position;
 	card.properties = {};	
-	card.properties[property] = rollup.sum[property];
+	setDescendantProp(card.properties, property, getDescendantProp(rollup, property));
 	card.generatedDate = new Date().toISOString();
-	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, 'sum', property, '.json'].join('/');
+	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
 	if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
 		var positionText;
@@ -318,8 +338,12 @@ var createtop10Card = function(user, position, rollup, property, repos){
 	};
 
 	logger.debug(user.username, 'Adding card, condition, operation, options', [condition, operation, options]);
-	repos.user.update(condition, operation, options);
+	repos.user.update(condition, operation, options, function(error, response){
+		logger.debug(user.username, 'card insertion response: ', error);
+	});
 };
+
+
 
 var createBottom10Card = function(user, position, rollup, property, repos){
 	logger.debug(user.username, 'Adding bottom10 card');
@@ -333,9 +357,9 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 	card.actionTags = rollup.actionTags;
 	card.position = position;
 	card.properties = {};	
-	card.properties[property] = rollup.sum[property];
+	setDescendantProp(card.properties, property, getDescendantProp(rollup, property));
 	card.generatedDate = new Date().toISOString();
-	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, 'sum', property, '.json'].join('/');
+	card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
 	if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
 		var positionText;
@@ -419,8 +443,8 @@ var createTop10Insight = function(user, rollup, property, repos){
 		},
 		$orderby: {}
 	};
-	condition.$query['sum.' + property] = {$exists: true};
-	condition.$orderby['sum.' + property] = -1;
+	condition.$query[property] = {$exists: true};
+	condition.$orderby[property] = -1;
 
 	var projection = {
 		date: true,
@@ -461,8 +485,8 @@ var createBottom10Insight = function(user, rollup, property, repos){
 		},
 		$orderby: {}
 	};
-	condition.$query['sum.' + property] = {$exists: true};
-	condition.$orderby['sum.' + property] = 1;
+	condition.$query[property] = {$exists: true};
+	condition.$orderby[property] = 1;
 
 	var projection = {
 		date: true,
@@ -508,14 +532,26 @@ var createDailyInsightCards = function(user, repos){
 	logger.info(user.username, 'creating daily insights');
 	logger.debug(user.username, 'daily insights condition: ', condition);
 
+	var createInsightForRollup = function(path, user, properties, repos, rollup){
+		for(var property in properties){
+			var propertyPath = [path, property].join('.');
+			var propertyVal = properties[property];
+			if(_.isNumber(propertyVal)){
+				createTop10Insight(user, rollup, propertyPath, repos);
+				createBottom10Insight(user, rollup, propertyPath, repos);
+			}
+			else if(_.isObject(propertyVal)){
+				createInsightForRollup(propertyPath, user, rollup[property], repos, rollup);
+			}
+		}
+	}
+
 	repos.userRollupByDay.find(condition).toArray(function(error, yesterdaysRollups){
 		logger.debug(user.username, 'found rollups for yesterday: ', yesterdaysRollups.length);
 		for(var i = 0; i < yesterdaysRollups.length; i++){
 			logger.debug(user.username, 'creating insights for actionTags, objectTags, sum:', [yesterdaysRollups.actionTags, yesterdaysRollups.objectTags, yesterdaysRollups.sum]);
-			for(var property in yesterdaysRollups[i].sum){
-				createTop10Insight(user, yesterdaysRollups[i], property, repos);
-				createBottom10Insight(user, yesterdaysRollups[i], property, repos);
-			}
+			var rollup = yesterdaysRollups[i];
+			createInsightForRollup('sum', user, rollup.sum, repos, rollup);
 		}
 	});
 
