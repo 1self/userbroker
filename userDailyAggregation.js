@@ -143,8 +143,8 @@ var processEvent = function(streamEvent, user, repos){
 	var operation = {};
 
 	// adding in the count here ensures that every event type will
-	// appear in the rollup. Count is represented by #
-	streamEvent.properties['#'] = 1;
+	// appear in the rollup. 
+	streamEvent.properties['{{count}}'] = 1;
 
 	var explodedLabels = [];
 	var measures = {};
@@ -288,7 +288,7 @@ var createtop10Card = function(user, position, rollup, property, repos){
 		card.cardText = positionText + 'highest minutes of coding';
 	}
 
-	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '#'){
+	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '{{count}}'){
 		var positionText;
 		if(position === 0){
 			positionText = '';
@@ -339,7 +339,13 @@ var createtop10Card = function(user, position, rollup, property, repos){
 
 	logger.debug(user.username, 'Adding card, condition, operation, options', [condition, operation, options]);
 	repos.user.update(condition, operation, options, function(error, response){
-		logger.debug(user.username, 'card insertion response: ', error);
+		if(error){
+			logger.error(user.username, 'error inserting card, error: ', error);			
+		}
+		else
+		{
+			logger.debug(user.username, 'card inserted, response: ', response.result);
+		}
 	});
 };
 
@@ -379,7 +385,7 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 		card.cardText = positionText + 'lowest minutes of coding';
 	}
 
-	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '#'){
+	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '{{count}}'){
 		var positionText;
 		if(position === 0){
 			positionText = '';

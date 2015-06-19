@@ -125,8 +125,12 @@ var processUserEvent = function(userEvent, userRepository){
 			return;
 		}
 
-		cacheUser(user);
+		if(user.username === undefined){
+			logger.warn(userEvent.username, 'user found without a conforming schema, useranme missing: user: ', user);
+			return;
+		}
 
+		cacheUser(user);
 		logger.debug(userEvent.username, 'loaded user from database:', user);
 	});
 	
@@ -184,6 +188,11 @@ var loadUsers = function(userRepository, callback){
 
 		logger.info('loading users', 'loaded ' + docs.length + ' users from the database');
 		_.map(docs, function(user){
+			if(user.username === undefined){
+				logger.warn('user found without a conforming schema, useranme missing: user: ', user);
+				return;
+			}
+			
 			cacheUser(user);
 		});
 
