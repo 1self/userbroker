@@ -144,7 +144,7 @@ var processEvent = function(streamEvent, user, repos){
 
 	// adding in the count here ensures that every event type will
 	// appear in the rollup. 
-	streamEvent.properties['{{count}}'] = 1;
+	streamEvent.properties['__count__'] = 1;
 
 	var explodedLabels = [];
 	var measures = {};
@@ -288,7 +288,7 @@ var createtop10Card = function(user, position, rollup, property, repos){
 		card.cardText = positionText + 'highest minutes of coding';
 	}
 
-	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '{{count}}'){
+	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '__count__'){
 		var positionText;
 		if(position === 0){
 			positionText = '';
@@ -385,7 +385,7 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 		card.cardText = positionText + 'lowest minutes of coding';
 	}
 
-	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '{{count}}'){
+	if(card.objectTags.toString() === 'computer,control,software,source' && card.actionTags.toString() === 'github,push' && property === '__count__'){
 		var positionText;
 		if(position === 0){
 			positionText = '';
