@@ -103,6 +103,12 @@ var setLogger = function (newLogger){
 };
 
 var processEvent = function(streamEvent, user, repos){
+	var whitelist = ['m', 'ed', 'edf', 'fbtest'];
+	if(_.includes(whitelist, user.username) === false){
+		logger.verbose(user.username, 'not on the whitelist');
+		return;
+	}
+
 	logger.debug(user.username, 'processing event', streamEvent);
 
 	if(streamEvent.objectTags === undefined){
