@@ -575,7 +575,7 @@ var cronDaily = function(users, repos){
 		var whitelist = ['m', 'ed', 'edf', 'fbtest'];
 		if(_.includes(whitelist, user.username) === false){
 			logger.verbose(user.username, 'not on the whitelist, cron not running');
-			continue;
+			return;
 		}
 		createDailyInsightCards(user, repos);
 	});
