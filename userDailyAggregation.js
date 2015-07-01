@@ -105,7 +105,7 @@ var setLogger = function (newLogger){
 var processEvent = function(streamEvent, user, repos){
 	var whitelist = ['m', 'ed', 'edf', 'fbtest'];
 	if(_.includes(whitelist, user.username) === false){
-		logger.verbose(user.username, 'not on the whitelist');
+		logger.verbose(user.username, 'not on the whitelist, message not processed');
 		return;
 	}
 
@@ -572,6 +572,11 @@ var createDailyInsightCards = function(user, repos){
 
 var cronDaily = function(users, repos){
 	_.map(users, function(user){
+		var whitelist = ['m', 'ed', 'edf', 'fbtest'];
+		if(_.includes(whitelist, user.username) === false){
+			logger.verbose(user.username, 'not on the whitelist, cron not running');
+			continue;
+		}
 		createDailyInsightCards(user, repos);
 	});
 };
