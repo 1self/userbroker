@@ -220,7 +220,7 @@ var setAppBrokerRepo = function(appBrokerRepo){
 
 var setIdGenerator = function(generator){
 	repos.idGenerator = generator;
-}
+};
 
 module.exports = {};
 module.exports.subscribeMessage = subscribeMessage;
