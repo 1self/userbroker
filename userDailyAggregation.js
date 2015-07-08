@@ -159,12 +159,30 @@ var processEvent = function(streamEvent, user, repos){
 	var explodedLabels = [];
 	var measures = {};
 
+	var createKey = function(property, second){
+		var result = [property, second.replace(/\.|\[|\]/g,function(match){
+			if(match === '.'){
+				return '^';
+			}
+			else if (match === '['){
+				return '(';
+			}
+			else if (match === ']'){
+				return ')';
+			}
+
+			throw 'matched unknown string';
+		})].join(MEASURE_DELIMITER);
+
+		return result;
+	}
+
 	var explodeArray = function(e, property){
 		if(_.isString(e) === false){
 			return;
 		}
 
-		var key = [property, e.replace(/\./g,'^')].join(MEASURE_DELIMITER);
+		var key = createKey(property, e);
 		explodedLabels.push(key);
 	};
 
@@ -172,7 +190,13 @@ var processEvent = function(streamEvent, user, repos){
 		for(var property in properties){
 			var propertyValue = properties[property];
 			if(_.isString(propertyValue)){
-				var key = [property, properties[property].replace(/\./g,'^')].join(MEASURE_DELIMITER);
+				var propertyValue = properties[property];
+				if(_.isEmpty(propertyValue)){
+					logger.debug('skipping empty property value', [property, propertyValue]	)
+					continue;
+				}
+
+				var key = createKey(property, propertyValue);
 				explodedLabels.push(key);
 			}
 			else if(_.isArray(propertyValue)){
@@ -285,6 +309,10 @@ var createtop10Card = function(user, position, rollup, property, repos){
 
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
+
+		if(_.contains(card.chart, '..')){
+			debugger;
+		}
 
 		var positionText;
 		if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
@@ -399,6 +427,11 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 		
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
+
+
+		if(_.contains(card.chart, '..')){
+			debugger;
+		}
 
 		var positionText;
 		if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
