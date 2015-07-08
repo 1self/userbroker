@@ -261,6 +261,7 @@ var createtop10Card = function(user, position, rollup, property, repos){
 		var card = {};
 		card.id = repos.idGenerator();
 		card.type = "top10";
+		card.outOf = rollup.outOf;
 		card.thumbnailMedia = 'chart.html';
 		card.startRange = rollup.date;
 		card.endRange = rollup.date;
@@ -269,6 +270,19 @@ var createtop10Card = function(user, position, rollup, property, repos){
 		card.position = position;
 		card.properties = {};	
 		_.set(card.properties, property, _.get(rollup, property));
+		card.stdDev = {};
+		_.set(card.stdDev, property, rollup.stdDev);
+		card.correctedStdDev = {};
+		_.set(card.correctedStdDev, property, rollup.correctedStdDev);
+		card.sampleStdDev = {};
+		_.set(card.sampleStdDev, property, rollup.sampleStdDev);
+		card.sampleCorrectedStdDev = {};
+		_.set(card.sampleCorrectedStdDev, property, rollup.sampleCorrectedStdDev);
+		card.mean = {};
+		_.set(card.mean, property, rollup.mean);
+		card.variance = {};
+		_.set(card.variance, property, rollup.variance);
+
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
@@ -361,6 +375,7 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 		var card = {};
 		card.id = repos.idGenerator();
 		card.type = "bottom10";
+		card.outOf = rollup.outOf;
 		card.thumbnailMedia = 'chart.html';
 		card.startRange = rollup.date;
 		card.endRange = rollup.date;
@@ -369,6 +384,19 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 		card.position = position;
 		card.properties = {};	
 		_.set(card.properties, property, _.get(rollup, property));
+		card.stdDev = {};
+		_.set(card.stdDev, property, rollup.stdDev);
+		card.correctedStdDev = {};
+		_.set(card.correctedStdDev, property, rollup.correctedStdDev);
+		card.sampleStdDev = {};
+		_.set(card.sampleStdDev, property, rollup.sampleStdDev);
+		card.sampleCorrectedStdDev = {};
+		_.set(card.sampleCorrectedStdDev, property, rollup.sampleCorrectedStdDev);
+		card.mean = {};
+		_.set(card.mean, property, rollup.mean);
+		card.variance = {};
+		_.set(card.variance, property, rollup.variance);
+		
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
@@ -472,12 +500,38 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 		logger.debug(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
 
-		repos.userRollupByDay.find(condition).limit(100).toArray(function(error, top10){
+		repos.userRollupByDay.find(condition).limit(365).toArray(function(error, top10){
 			logger.debug(user.username, 'retrieved the top10');
 			if(top10.length <= 3){
 				logger.debug(user.username, 'Less than 3 entries in top 10: ', property);
 				resolve(user, rollup, property, repos);
+				return;
 			}
+
+			var mean = _.sum(top10, property) / top10.length;
+			var sumSquares = _.reduce(top10, function(total, item, other){
+				var variance = _.get(item, property) - mean;
+				var varianceSq = variance * variance;
+				total += varianceSq;
+				if(total === NaN){
+					logger.error(user.username, 'Error calculating sumSquares', item);
+				}
+				return total;
+			}, 0);
+
+			var variance = Math.sqrt(sumSquares);
+			var stdDev = variance / top10.length;
+			var correctedStdDev = top10.length === 1 ? variance : variance / (top10.length - 1);
+			var propertyVariance = _.get(rollup, property) - mean;
+			var sampleStdDev = stdDev === 0 ? 0 : Math.sqrt(propertyVariance * propertyVariance) / stdDev;
+			var sampleCorrectedStdDev = correctedStdDev <= 0 ? 0 : Math.sqrt(propertyVariance * propertyVariance) / correctedStdDev;
+			rollup.stdDev = stdDev;
+			rollup.correctedStdDev = correctedStdDev;
+			rollup.sampleStdDev = sampleStdDev;
+			rollup.sampleCorrectedStdDev = sampleCorrectedStdDev;
+			rollup.mean = mean;
+			rollup.variance = propertyVariance;
+			rollup.outOf = top10.length;
 
 			var top10Index = _.sortedIndex(top10, rollup, function(r){
 				return -(_.get(r, property));
@@ -522,12 +576,38 @@ var createBottom10Insight = function(user, rollup, property, repos){
 
 		logger.debug(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
 
-		repos.userRollupByDay.find(condition).limit(100).toArray(function(error, bottom10){
+		repos.userRollupByDay.find(condition).limit(365).toArray(function(error, bottom10){
 			logger.debug(user.username, 'retrieved the bottom10');
 				if(bottom10.length <= 3){
 					logger.debug(user.username, 'Less than 3 entries in bottom 10: ', property);
 					resolve(user, rollup, property, repos);
+					return;
 				}
+
+				var mean = _.sum(bottom10, property) / bottom10.length;
+				var sumSquares = _.reduce(bottom10, function(total, item, other){
+					var variance = _.get(item, property) - mean;
+					var varianceSq = variance * variance;
+					total += varianceSq;
+					if(total === NaN){
+						logger.error(user.username, 'Error calculating sumSquares', item);
+					}
+					return total;
+				}, 0);
+
+				var variance = Math.sqrt(sumSquares);
+				var stdDev = variance / bottom10.length;
+				var correctedStdDev = bottom10.length === 1 ? variance : variance / (bottom10.length - 1);
+				var propertyVariance = _.get(rollup, property) - mean;
+				var sampleStdDev = stdDev === 0 ? 0 : Math.sqrt(propertyVariance * propertyVariance) / stdDev;
+				var sampleCorrectedStdDev = correctedStdDev <= 0 ? 0 : Math.sqrt(propertyVariance * propertyVariance) / correctedStdDev;
+				rollup.stdDev = stdDev;
+				rollup.correctedStdDev = correctedStdDev;
+				rollup.sampleStdDev = sampleStdDev;
+				rollup.sampleCorrectedStdDev = sampleCorrectedStdDev;
+				rollup.mean = mean;
+				rollup.variance = propertyVariance;
+				rollup.outOf = bottom10.length;
 
 				var bottom10Index = _.sortedIndex(bottom10, rollup, function(r){
 					return _.get(r, property);
@@ -537,7 +617,6 @@ var createBottom10Insight = function(user, rollup, property, repos){
 					logger.debug(user.username, 'rollup didnt make it in bottom 10');
 					resolve(user, rollup, property, repos);
 				}
-
 
 				logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
 				createBottom10Card(user, bottom10Index, rollup, property, repos)
