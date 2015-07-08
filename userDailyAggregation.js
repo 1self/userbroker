@@ -107,7 +107,7 @@ var setLogger = function (newLogger){
 };
 
 var processEvent = function(streamEvent, user, repos){
-	var whitelist = ['m', 'ed', 'edf', 'fbtest'];
+	var whitelist = ['m', 'ed', 'edf', 'fbtest', 'martin'];
 	if(_.includes(whitelist, user.username) === false){
 		logger.verbose(user.username, 'not on the whitelist, message not processed');
 		return;
