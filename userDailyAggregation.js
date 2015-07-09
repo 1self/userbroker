@@ -282,6 +282,12 @@ var createDateCard = function(user, repos){
 var createtop10Card = function(user, position, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
 		logger.debug(user.username, 'Adding top10 card');
+
+		if(rollup.variance < 0){
+			logger.debug(user.username, 'variance is negative, ignoring for top 10');
+			return;
+		}
+
 		var card = {};
 		card.id = repos.idGenerator();
 		card.type = "top10";
@@ -395,6 +401,12 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 
 		logger.debug(user.username, 'Adding bottom10 card');
 		var card = {};
+
+		if(rollup.variance >= 0){
+			logger.debug(user.username, 'variance is positive, ignoring for bottom 10');
+			return;
+		}
+
 		card.id = repos.idGenerator();
 		card.type = "bottom10";
 		card.outOf = rollup.outOf;
