@@ -1,5 +1,6 @@
 'use strict';
 var _ = require('lodash');
+var moment = require('moment');
 var q = require('q');
 var logger = require('winston');
 
@@ -149,8 +150,7 @@ var processEvent = function(streamEvent, user, repos){
 		return;
 	}
 
-	condition.date = streamEvent.dateTime.substring(0, 10);
-	var operation = {};
+	var operations = {};
 
 	// adding in the count here ensures that every event type will
 	// appear in the rollup. 
@@ -222,28 +222,109 @@ var processEvent = function(streamEvent, user, repos){
 		}
 	}
 
-	_.map(measures, function(propValue, propKey){
-		var increment = "properties." + propKey + "." + streamEvent.dateTime.substring(11, 13);
-		if(operation['$inc'] === undefined){
-			operation['$inc'] = {};
+	_.chain(measures)
+	.map(function(propValue, propKey){
+		if(/(\-|^)duration($|\-)/.test(propKey)){
+			// 12:52
+			// duration is 8000
+
+			// 12: 52 * 60        / 8000 - 3120 = 4880
+			// 11: 60 * 60        / 4880 - 3600 = 1280
+			// 10: 1280           / 0
+
+
+			// 17th 01:52
+			// duration is 8000
+
+			// 17th 01:         52 * 60        / 8000 - 3120 = 4880
+			// 17th 00:         60 * 60        / 4880 - 3600 = 1280
+			// 16th 23:         1280           / 0
+
+			// 180
+			var durationLeft = propValue;
+			var durationDateTime = streamEvent.dateTime;
+
+			result = [];
+			var bucketStart = moment(streamEvent.dateTime);
+
+			while(durationLeft > 0){
+				var secondsIntoTheHour = bucketStart.minutes() * 60 + bucketStart.seconds();
+				secondsIntoTheHour = secondsIntoTheHour === 0 ? 3600 : secondsIntoTheHour;
+				var bucketDuration = Math.min(durationLeft, secondsIntoTheHour);
+
+				durationLeft = durationLeft - bucketDuration;
+
+				if(durationLeft < 0){
+					throw 'error while spreading duration to the rollups';
+				}
+				
+				bucketStart = moment(bucketStart.add( -bucketDuration, 's'));
+				
+				var measure = {
+					date: bucketStart.toISOString(),
+					key: propKey,
+					value: bucketDuration
+				}
+				
+				result.push(measure); 
+			}
 		}
-		operation['$inc'][increment] = propValue;
+		else{
+			var result;
+			result = {
+				date: moment(streamEvent.dateTime).toISOString(),
+				key: propKey,
+				value: propValue
+			}
+		}
 
-		var incrementSums = "sum." + propKey;
-		operation['$inc'][incrementSums] = propValue;
+		return result;
+	})
+	.flatten()
+	.forEach(function(measure){
+		var dayDate = measure.date.substring(0, 10);
+		var increment = "properties." + measure.key + "." + measure.date.substring(11, 13);
+		var incrementCounts = "count." + measure.key;
+		var incrementSums = "sum." + measure.key;
 
-		var incrementCounts = "count." + propKey;
-		operation['$inc'][incrementCounts] = 1;
-	});
+		if(operations[dayDate] === undefined){
+			operations[dayDate] = {};
+		}
+
+		if(operations[dayDate]['$inc'] === undefined){
+			operations[dayDate]['$inc'] = {};
+		}
+
+		if(operations[dayDate]['$inc'][increment] === undefined){
+			operations[dayDate]['$inc'][increment] = 0;
+		}
+
+		if(operations[dayDate]['$inc'][incrementSums] === undefined){
+			operations[dayDate]['$inc'][incrementSums] = 0;
+		}
+
+		if(operations[dayDate]['$inc'][incrementCounts] === undefined){
+			operations[dayDate]['$inc'][incrementCounts] = 0;
+		}
+
+		operations[dayDate]['$inc'][increment] = measure.value;
+		operations[dayDate]['$inc'][incrementSums] += measure.value;
+		operations[dayDate]['$inc'][incrementCounts] += 1;
+	})
+	.value();
 
 	var options = {
 		upsert: true
 	};
 
-	logger.silly('calling insert');
-	logger.silly('condition', JSON.stringify(condition));
-	logger.silly('operation', JSON.stringify(operation));
-	repos.userRollupByDay.update(condition, operation, options);
+	_.forEach(operations, function(operation, date){
+		condition.date = date;
+		logger.silly('calling insert');
+		logger.silly('condition', JSON.stringify(condition));
+		logger.silly('operation', JSON.stringify(operation));
+
+		repos.userRollupByDay.update(condition, operation, options);
+	})
 };
 
 var createDateCard = function(user, repos){
