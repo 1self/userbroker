@@ -108,7 +108,7 @@ var setLogger = function (newLogger){
 };
 
 var processEvent = function(streamEvent, user, repos){
-	var whitelist = ['m', 'ed', 'edf', 'fbtest', 'martin'];
+	var whitelist = ['m', 'ed', 'edf', 'fbtest', 'martin', 'chris1self'];
 	if(_.includes(whitelist, user.username) === false){
 		logger.verbose(user.username, 'not on the whitelist, message not processed');
 		return;
@@ -175,7 +175,7 @@ var processEvent = function(streamEvent, user, repos){
 		})].join(MEASURE_DELIMITER);
 
 		return result;
-	}
+	};
 
 	var explodeArray = function(e, property){
 		if(_.isString(e) === false){
@@ -190,9 +190,8 @@ var processEvent = function(streamEvent, user, repos){
 		for(var property in properties){
 			var propertyValue = properties[property];
 			if(_.isString(propertyValue)){
-				var propertyValue = properties[property];
 				if(_.isEmpty(propertyValue)){
-					logger.debug('skipping empty property value', [property, propertyValue]	)
+					logger.debug('skipping empty property value', [property, propertyValue]	);
 					continue;
 				}
 
@@ -224,6 +223,8 @@ var processEvent = function(streamEvent, user, repos){
 
 	_.chain(measures)
 	.map(function(propValue, propKey){
+		var result = [];
+		
 		if(/(\-|^)duration($|\-)/.test(propKey)){
 			// 12:52
 			// duration is 8000
@@ -242,9 +243,7 @@ var processEvent = function(streamEvent, user, repos){
 
 			// 180
 			var durationLeft = propValue;
-			var durationDateTime = streamEvent.dateTime;
 
-			result = [];
 			var bucketStart = moment(streamEvent.dateTime);
 
 			while(durationLeft > 0){
@@ -264,18 +263,17 @@ var processEvent = function(streamEvent, user, repos){
 					date: bucketStart.toISOString(),
 					key: propKey,
 					value: bucketDuration
-				}
+				};
 				
 				result.push(measure); 
 			}
 		}
 		else{
-			var result;
 			result = {
 				date: moment(streamEvent.dateTime).toISOString(),
 				key: propKey,
 				value: propValue
-			}
+			};
 		}
 
 		return result;
@@ -324,7 +322,7 @@ var processEvent = function(streamEvent, user, repos){
 		logger.silly('operation', JSON.stringify(operation));
 
 		repos.userRollupByDay.update(condition, operation, options);
-	})
+	});
 };
 
 var createDateCard = function(user, repos){
@@ -390,10 +388,6 @@ var createtop10Card = function(user, position, rollup, property, repos){
 
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
-
-		if(_.contains(card.chart, '..')){
-			debugger;
-		}
 
 		var positionText;
 		if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
@@ -509,11 +503,6 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
-
-		if(_.contains(card.chart, '..')){
-			debugger;
-		}
-
 		var positionText;
 		if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
 			if(position === 0){
@@ -623,11 +612,11 @@ var createTop10Insight = function(user, rollup, property, repos){
 			}
 
 			var mean = _.sum(top10, property) / top10.length;
-			var sumSquares = _.reduce(top10, function(total, item, other){
+			var sumSquares = _.reduce(top10, function(total, item){
 				var variance = _.get(item, property) - mean;
 				var varianceSq = variance * variance;
 				total += varianceSq;
-				if(total === NaN){
+				if(isNaN(total)){
 					logger.error(user.username, 'Error calculating sumSquares', item);
 				}
 				return total;
@@ -699,11 +688,11 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				}
 
 				var mean = _.sum(bottom10, property) / bottom10.length;
-				var sumSquares = _.reduce(bottom10, function(total, item, other){
+				var sumSquares = _.reduce(bottom10, function(total, item){
 					var variance = _.get(item, property) - mean;
 					var varianceSq = variance * variance;
 					total += varianceSq;
-					if(total === NaN){
+					if(isNaN(total)){
 						logger.error(user.username, 'Error calculating sumSquares', item);
 					}
 					return total;
@@ -780,7 +769,7 @@ var createDailyInsightCards = function(user, repos){
 				var propertyPath = [path, property].join('.');
 				var propertyVal = properties[property];
 				if(_.isNumber(propertyVal)){
-					var top10Promise = createTop10Insight(user, rollup, propertyPath, repos)
+					var top10Promise = createTop10Insight(user, rollup, propertyPath, repos);
 					var bottom10Promise = createBottom10Insight(user, rollup, propertyPath, repos);
 
 					result.push(top10Promise);
@@ -824,7 +813,7 @@ var createDailyInsightCards = function(user, repos){
 
 var cronDaily = function(users, repos){
 	_.map(users, function(user){
-		var whitelist = ['m', 'ed', 'edf', 'fbtest', 'martin'];
+		var whitelist = ['m', 'ed', 'edf', 'fbtest', 'martin', 'chris1self'];
 		if(_.includes(whitelist, user.username) === false){
 			logger.verbose(user.username, 'not on the whitelist, cron not running');
 			return;
