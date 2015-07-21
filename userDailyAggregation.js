@@ -389,6 +389,7 @@ var createtop10Card = function(user, position, rollup, property, repos, date){
 		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
+		card.chart += "?to=" + date;
 
 		var positionText;
 		if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
@@ -504,6 +505,7 @@ var createBottom10Card = function(user, position, rollup, property, repos, date)
 		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
+		card.chart += "?to=" + date;
 
 		var positionText;
 		if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
