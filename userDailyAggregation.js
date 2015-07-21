@@ -591,7 +591,8 @@ var createTop10Insight = function(user, rollup, property, repos, date){
 			$query: {
 				userId: rollup.userId,
 				actionTags: rollup.actionTags,
-				objectTags: rollup.objectTags
+				objectTags: rollup.objectTags,
+				date: {$lte: date}
 			},
 			$orderby: {}
 		};
@@ -667,7 +668,8 @@ var createBottom10Insight = function(user, rollup, property, repos, date){
 			$query: {
 				userId: rollup.userId,
 				actionTags: rollup.actionTags,
-				objectTags: rollup.objectTags
+				objectTags: rollup.objectTags,
+				date: {$lte: date}
 			},
 			$orderby: {}
 		};
