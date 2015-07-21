@@ -108,7 +108,7 @@ var setLogger = function (newLogger){
 };
 
 var processEvent = function(streamEvent, user, repos){
-	var whitelist = ['m', 'ed', 'edf', 'fbtest', 'martin', 'chris1self'];
+	var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'chris1self'];
 	if(_.includes(whitelist, user.username) === false){
 		logger.verbose(user.username, 'not on the whitelist, message not processed');
 		return;
@@ -143,7 +143,6 @@ var processEvent = function(streamEvent, user, repos){
 	condition.objectTags = condition.objectTags.map(function(tag){return tag.toLowerCase();});
 	condition.actionTags = _.sortBy(streamEvent.actionTags, function(tag){return tag.toLowerCase();});
 	condition.actionTags = condition.actionTags.map(function(tag){return tag.toLowerCase();});
-
 
 	if(_.indexOf(condition.objectTags, 'sync') >= 0){
 		logger.debug(user.username, "ignoring sync event");
@@ -325,11 +324,12 @@ var processEvent = function(streamEvent, user, repos){
 	});
 };
 
-var createDateCard = function(user, repos){
+var createDateCard = function(user, repos, date){
 	return q.Promise(function(resolve, reject) {
 		var card = {};
 		card.id = repos.idGenerator();
 		card.type = 'date';
+		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
 
 		var condition = {
@@ -358,7 +358,7 @@ var createDateCard = function(user, repos){
 	});
 };
 
-var createtop10Card = function(user, position, rollup, property, repos){
+var createtop10Card = function(user, position, rollup, property, repos, date){
 	return q.Promise(function(resolve, reject){
 		logger.debug(user.username, 'Adding top10 card');
 
@@ -386,6 +386,7 @@ var createtop10Card = function(user, position, rollup, property, repos){
 		card.mean = rollup.mean;
 		card.variance = rollup.variance;
 
+		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
@@ -471,7 +472,7 @@ var createtop10Card = function(user, position, rollup, property, repos){
 
 
 
-var createBottom10Card = function(user, position, rollup, property, repos){
+var createBottom10Card = function(user, position, rollup, property, repos, date){
 	return q.Promise(function(resolve, reject){
 
 		logger.debug(user.username, 'Adding bottom10 card');
@@ -500,6 +501,7 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 		card.mean = rollup.mean;
 		card.variance = rollup.variance;
 		
+		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, property, '.json'].join('/');
 
@@ -582,7 +584,7 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 	});
 };
 
-var createTop10Insight = function(user, rollup, property, repos){
+var createTop10Insight = function(user, rollup, property, repos, date){
 	return q.Promise(function(resolve, reject){
 		logger.debug(user.username, 'analyzing top10');
 		var condition = {
@@ -647,7 +649,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 			logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
 			
-			createtop10Card(user, top10Index, rollup, property, repos)
+			createtop10Card(user, top10Index, rollup, property, repos, date)
 			.then(function(){
 				resolve(user, rollup, property, repos);
 			})
@@ -658,7 +660,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 	});
 };
 
-var createBottom10Insight = function(user, rollup, property, repos){
+var createBottom10Insight = function(user, rollup, property, repos, date){
 	return q.Promise(function(resolve, reject){
 		logger.debug(user.username, 'analyzing bottom10');
 		var condition = {
@@ -722,7 +724,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				}
 
 				logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
-				createBottom10Card(user, bottom10Index, rollup, property, repos)
+				createBottom10Card(user, bottom10Index, rollup, property, repos, date)
 				.then(function(){
 					resolve(user, rollup, property, repos);
 				})
@@ -734,16 +736,20 @@ var createBottom10Insight = function(user, rollup, property, repos){
 };
 
 
-var createDailyInsightCards = function(user, repos){
+var createDailyInsightCards = function(user, repos, date){
 	logger.info(user.username, 'creating daily insights');
 
 	var createDatabaseQuery = function(){
-		var d = new Date();
-		d.setDate(d.getDate() - 1);
-		var yesterday = d.toISOString().substring(0, 10); 
+		var conditionDate = date;
+		if(conditionDate === undefined){
+			var d = new Date();
+			d.setDate(d.getDate() - 1);
+			conditionDate = d.toISOString().substring(0, 10); 
+		}
+
 		var condition = {
 			userId: user._id,
-			date: yesterday
+			date: conditionDate
 		};
 
 		return condition;
@@ -769,8 +775,8 @@ var createDailyInsightCards = function(user, repos){
 				var propertyPath = [path, property].join('.');
 				var propertyVal = properties[property];
 				if(_.isNumber(propertyVal)){
-					var top10Promise = createTop10Insight(user, rollup, propertyPath, repos);
-					var bottom10Promise = createBottom10Insight(user, rollup, propertyPath, repos);
+					var top10Promise = createTop10Insight(user, rollup, propertyPath, repos, date);
+					var bottom10Promise = createBottom10Insight(user, rollup, propertyPath, repos, date);
 
 					result.push(top10Promise);
 					result.push(bottom10Promise);
@@ -801,7 +807,7 @@ var createDailyInsightCards = function(user, repos){
 		logger.info(user.username, 'finished creating insights');
 	};
 
-	createDateCard(user, repos)
+	createDateCard(user, repos, date)
 	.then(createDatabaseQuery)
 	.then(getYesterdayRollupsFromDatabase)
 	.then(generateInsightsFromRollups)
@@ -811,14 +817,14 @@ var createDailyInsightCards = function(user, repos){
 	});
 };
 
-var cronDaily = function(users, repos){
+var cronDaily = function(users, repos, date){
 	_.map(users, function(user){
-		var whitelist = ['m', 'ed', 'edf', 'fbtest', 'martin', 'chris1self'];
+		var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'chris1self'];
 		if(_.includes(whitelist, user.username) === false){
 			logger.verbose(user.username, 'not on the whitelist, cron not running');
 			return;
 		}
-		createDailyInsightCards(user, repos);
+		createDailyInsightCards(user, repos, date);
 	});
 };
 

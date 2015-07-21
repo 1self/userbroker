@@ -131,7 +131,7 @@ var streamMessage = {
 };
 
 describe('userbroker node module', function () {
-  it('passes stream event all processing modules', function () {
+  it('passes stream event to all processing modules', function () {
     userbroker.subscribeMessage('events', JSON.stringify(streamMessage));
     logger.info(JSON.stringify(logger.messages));
     assert(_.contains(logger.messages.debug, 'appBroker: testuser: processing event') === true, 'appBroker didnt get stream event');
@@ -159,6 +159,15 @@ describe('userbroker node module', function () {
     assert(_.contains(logger.messages.info, 'appBroker: cron/daily: received') === true, 'cron/daily not processed');
   });
 
+  it('reads the user from the cron daily ', function () {
+      var message = "cron/daily/user/testuser/date/2015-01-01";
+
+      userbroker.subscribeMessage('userbroker', message);
+      logger.info(logger.messages);
+      assert(_.contains(logger.messages.info, 'userbroker: cron/daily/user/testuser/date/2015-01-01: asking processor to send testuser to apps on 2015-01-01') === true, 'cron/daily/users/ed/date/ not processed');
+      assert(_.contains(logger.messages.info, 'appBroker: cron/daily: received') === true, 'cron/daily not processed');
+    });
+
 });
 
 describe('userDailyAggregation node module', function () {
@@ -169,12 +178,13 @@ describe('userDailyAggregation node module', function () {
 
   it('ignores lower and upper case sync events sync events', function () {
   	var event = {
-  		objectTags: [],
-  		actionTags: ['sync'],
+      actionTags: ['start'],
+  		objectTags: ['sync'],
   		dateTime: '2015-06-01T13:00:00.000Z'
   	};
 
     userDailyAggregation.processEvent(event, users[0], repos);
+    logger.info('messages: ', logger.messages.debug);
     assert(_.contains(logger.messages.debug, 'userDailyAggregation: testuser: ignoring sync event') === true);
   });
 
@@ -197,151 +207,6 @@ describe('userDailyAggregation node module', function () {
     assert(userRollupsRepo.updates[0].condition.actionTags[0] === 'action');
     assert(userRollupsRepo.updates[0].operation['$inc']['properties.prop1.13'] === 10);
     assert(userRollupsRepo.updates[0].operation['$inc']['properties.prop2.13'] === 10);
-  });
-
-  it('insert index is 0 when array is empty', function () {
-  	var index = userDailyAggregation.insertIndex([], 0, function(x){return x;});
-    assert(index === 0, 'index is ' + index);
-  });
-
-  it('inserts a new top 1', function () {
-  	var index = userDailyAggregation.insertIndex([1], 2, function(x){return x;});
-    assert(index === 0, 'index is ' + index);
-  });
-
-  it('inserts at the end when there is only one entry and it is higher', function () {
-  	var index = userDailyAggregation.insertIndex([2], 1, function(x){return x;});
-    assert(index === 1, 'index is ' + index);
-  });
-
-  it('inserts position 0 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 11, function(x){return x;});
-    assert(index === 0, 'index is ' + index);
-  });
-
-  it('inserts position 1 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 9, function(x){return x;});
-    assert(index === 1, 'index is ' + index);
-  });
-
-  it('inserts position 2 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 8, function(x){return x;});
-    assert(index === 2, 'index is ' + index);
-  });
-
-  it('inserts position 3 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 7, function(x){return x;});
-    assert(index === 3, 'index is ' + index);
-  });
-
-it('inserts position 4 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 6, function(x){return x;});
-    assert(index === 4, 'index is ' + index);
-  });
-
-  it('inserts position 5 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 5, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-  });
-
-  it('inserts position 6 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 4, function(x){return x;});
-    assert(index === 6, 'index is ' + index);
-  });
-
-  it('inserts position 7 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 3, function(x){return x;});
-    assert(index === 7, 'index is ' + index);
-  });
-
-  it('inserts position 8 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 2, function(x){return x;});
-    assert(index === 8, 'index is ' + index);
-  });
-
-  it('inserts position 9 in a full top 10', function () {
-  	var index = userDailyAggregation.insertIndex([10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 1, function(x){return x;});
-    assert(index === 9, 'index is ' + index);
-  });
-
-  it('inserts at the top of equal standing', function () {
-  	var index = userDailyAggregation.insertIndex([10, 10, 10, 10, 10, 10, 10, 10, 10, 10], 10, function(x){return x;});
-    assert(index === 0, 'index is ' + index);
-  });
-
-  it('inserts at the top of equal standing 2', function () {
-  	var index = userDailyAggregation.insertIndex([10, 10, 10, 10, 10, 9, 9, 9, 9, 9], 9, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-  });
-
-  it('inserts at the top of equal standing 2', function () {
-  	var index = userDailyAggregation.insertIndex([10, 10, 10, 10, 10, 9, 9, 9, 9, 9], 9, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-  });
-
-  it('inserts at the top of equal standing 2', function () {
-  	var index = userDailyAggregation.insertIndex([10, 10, 10, 9, 9], 9, function(x){return x;});
-    assert(index === 3, 'index is ' + index);
-  });
-
-  it('inserts at the end when less than 10 items', function () {
-  	var index = userDailyAggregation.insertIndex([10, 10, 10, 9, 9], 8, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-  });
-
-  it('simulate filling the top 10 up', function () {
-  	var index = userDailyAggregation.insertIndex([], 8, function(x){return x;});
-    assert(index === 0, 'index is ' + index);
-
-    index = userDailyAggregation.insertIndex([8], 5, function(x){return x;});
-    assert(index === 1, 'index is ' + index);
-    
-    index = userDailyAggregation.insertIndex([8, 5], 10, function(x){return x;});
-    assert(index === 0, 'index is ' + index);
-    
-    index = userDailyAggregation.insertIndex([10, 8, 5], 3, function(x){return x;});
-    assert(index === 3, 'index is ' + index);
-    
-    index = userDailyAggregation.insertIndex([10, 8, 5, 3], 10, function(x){return x;});
-    assert(index === 0, 'index is ' + index);
-    
-    index = userDailyAggregation.insertIndex([10, 10, 8, 5, 3], 9, function(x){return x;});
-    assert(index === 2, 'index is ' + index);
-    
-    index = userDailyAggregation.insertIndex([10, 10, 9, 8, 5, 3], 10, function(x){return x;});
-    assert(index === 0, 'index is ' + index);
-    
-    index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 3], 1, function(x){return x;});
-    assert(index === 7, 'index is ' + index);
-    
-    index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 3, 1], 1, function(x){return x;});
-    assert(index === 7, 'index is ' + index);
-    
-	index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 3, 1, 1], 1, function(x){return x;});
-    assert(index === 7, 'index is ' + index);
-    
-	index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 3, 1, 1, 1], 5, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-    
-	index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 5, 3, 1, 1], 5, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-    
-	index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 5, 5, 3, 1], 5, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-
-	index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 5, 5, 5, 3], 5, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-
-	index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 5, 5, 5, 5], 5, function(x){return x;});
-    assert(index === 5, 'index is ' + index);
-
-	index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 5, 5, 5, 5], 4, function(x){return x;});
-    assert(index === 10, 'index is ' + index);
-
-    index = userDailyAggregation.insertIndex([10, 10, 10, 9, 8, 5, 5, 5, 5, 5], 2, function(x){return x;});
-    assert(index === 10, 'index is ' + index);
-    
-    
   });
 
  it('negate test', function () {

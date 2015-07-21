@@ -166,6 +166,16 @@ var subscribeMessage = function(channel, message){
 			logger.info(message, 'asking processor to send users events to apps');
 			_.forEach(eventModules, cronDaily);
 		} 
+		else if(/cron\/daily\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})/.test(message)){
+			var matches = /cron\/daily\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})/.exec(message);
+			var cronDailyUser = matches[1];
+			var date = matches[2];
+
+			logger.info(message, ['asking processor to send', cronDailyUser, 'to apps on', date].join(' '));
+			_.forEach(eventModules, function(module){
+				module.cronDaily([users[cronDailyUser]], repos, date);
+			});
+		}
 		else if(message.substring(0,7) === 'logging'){
 			logger.level = message.split('=')[1];
 			logger[logger.level](channel, 'logging level set to ' + logger.level);
