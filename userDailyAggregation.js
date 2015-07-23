@@ -751,17 +751,16 @@ var createBottom10Insight = function(user, rollup, property, repos, date){
 var createDailyInsightCards = function(user, repos, date){
 	logger.info(user.username, 'creating daily insights');
 
-	var createDatabaseQuery = function(){
-		var conditionDate = date;
-		if(conditionDate === undefined){
-			var d = new Date();
-			d.setDate(d.getDate() - 1);
-			conditionDate = d.toISOString().substring(0, 10); 
-		}
+	if(date === undefined){
+		var d = new Date();
+		d.setDate(d.getDate() - 1);
+		date = d.toISOString().substring(0, 10); 
+	}
 
+	var createDatabaseQuery = function(){
 		var condition = {
 			userId: user._id,
-			date: conditionDate
+			date: date
 		};
 
 		return condition;
