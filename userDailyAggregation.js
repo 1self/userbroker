@@ -379,6 +379,7 @@ var createtop10Card = function(user, position, rollup, property, repos, date){
 		card.position = position;
 		card.properties = {};	
 		_.set(card.properties, property, _.get(rollup, property));
+		card.propertyName = rollup.propertyName;
 		card.stdDev = rollup.stdDev;
 		card.correctedStdDev = rollup.correctedStdDev;
 		card.sampleStdDev = rollup.sampleStdDev;
@@ -495,6 +496,7 @@ var createBottom10Card = function(user, position, rollup, property, repos, date)
 		card.position = position;
 		card.properties = {};	
 		_.set(card.properties, property, _.get(rollup, property));
+		card.propertyName = rollup.propertyName;
 		card.stdDev = rollup.stdDev;
 		card.correctedStdDev = rollup.correctedStdDev;
 		card.sampleStdDev = rollup.sampleStdDev;
@@ -598,8 +600,10 @@ var createTop10Insight = function(user, rollup, property, repos, date){
 			},
 			$orderby: {}
 		};
-		condition.$query[property] = {$exists: true};
-		condition.$orderby[property] = -1;
+
+		var propertyPath = property.join(".");
+		condition.$query[propertyPath] = {$exists: true};
+		condition.$orderby[propertyPath] = -1;
 
 		var projection = {
 			date: true,
@@ -611,14 +615,14 @@ var createTop10Insight = function(user, rollup, property, repos, date){
 		repos.userRollupByDay.find(condition).limit(365).toArray(function(error, top10){
 			logger.debug(user.username, 'retrieved the top10');
 			if(top10.length <= 3){
-				logger.debug(user.username, 'Less than 3 entries in top 10: ', property);
-				resolve(user, rollup, property, repos);
+				logger.debug(user.username, 'Less than 3 entries in top 10: ', propertyPath);
+				resolve(user, rollup, propertyPath, repos);
 				return;
 			}
 
-			var mean = _.sum(top10, property) / top10.length;
+			var mean = _.sum(top10, propertyPath) / top10.length;
 			var sumSquares = _.reduce(top10, function(total, item){
-				var variance = _.get(item, property) - mean;
+				var variance = _.get(item, propertyPath) - mean;
 				var varianceSq = variance * variance;
 				total += varianceSq;
 				if(isNaN(total)){
@@ -630,7 +634,7 @@ var createTop10Insight = function(user, rollup, property, repos, date){
 			var variance = Math.sqrt(sumSquares);
 			var stdDev = variance / top10.length;
 			var correctedStdDev = top10.length === 1 ? variance : variance / (top10.length - 1);
-			var propertyVariance = _.get(rollup, property) - mean;
+			var propertyVariance = _.get(rollup, propertyPath) - mean;
 			var sampleStdDev = stdDev === 0 ? 0 : Math.sqrt(propertyVariance * propertyVariance) / stdDev;
 			var sampleCorrectedStdDev = correctedStdDev <= 0 ? 0 : Math.sqrt(propertyVariance * propertyVariance) / correctedStdDev;
 			rollup.stdDev = stdDev;
@@ -640,21 +644,22 @@ var createTop10Insight = function(user, rollup, property, repos, date){
 			rollup.mean = mean;
 			rollup.variance = propertyVariance;
 			rollup.outOf = top10.length;
+			rollup.propertyName = property.slice(-1).concat(property.slice(0, -1)).join('.');
 
 			var top10Index = _.sortedIndex(top10, rollup, function(r){
-				return -(_.get(r, property));
+				return -(_.get(r, propertyPath));
 			});
 
 			if(top10Index >= 100){
 				logger.debug(user.username, 'rollup didnt make it in top10');
-				resolve(user, rollup, property, repos);
+				resolve(user, rollup, propertyPath, repos);
 			}
 
 			logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
 			
-			createtop10Card(user, top10Index, rollup, property, repos, date)
+			createtop10Card(user, top10Index, rollup, propertyPath, repos, date)
 			.then(function(){
-				resolve(user, rollup, property, repos);
+				resolve(user, rollup, propertyPath, repos);
 			})
 			.catch(function(error){
 				reject(error);
@@ -675,8 +680,10 @@ var createBottom10Insight = function(user, rollup, property, repos, date){
 			},
 			$orderby: {}
 		};
-		condition.$query[property] = {$exists: true};
-		condition.$orderby[property] = 1;
+
+		var propertyPath = property.join(".");
+		condition.$query[propertyPath] = {$exists: true};
+		condition.$orderby[propertyPath] = 1;
 
 		var projection = {
 			date: true,
@@ -688,14 +695,14 @@ var createBottom10Insight = function(user, rollup, property, repos, date){
 		repos.userRollupByDay.find(condition).limit(365).toArray(function(error, bottom10){
 			logger.debug(user.username, 'retrieved the bottom10');
 				if(bottom10.length <= 3){
-					logger.debug(user.username, 'Less than 3 entries in bottom 10: ', property);
-					resolve(user, rollup, property, repos);
+					logger.debug(user.username, 'Less than 3 entries in bottom 10: ', propertyPath);
+					resolve(user, rollup, propertyPath, repos);
 					return;
 				}
 
-				var mean = _.sum(bottom10, property) / bottom10.length;
+				var mean = _.sum(bottom10, propertyPath) / bottom10.length;
 				var sumSquares = _.reduce(bottom10, function(total, item){
-					var variance = _.get(item, property) - mean;
+					var variance = _.get(item, propertyPath) - mean;
 					var varianceSq = variance * variance;
 					total += varianceSq;
 					if(isNaN(total)){
@@ -707,7 +714,7 @@ var createBottom10Insight = function(user, rollup, property, repos, date){
 				var variance = Math.sqrt(sumSquares);
 				var stdDev = variance / bottom10.length;
 				var correctedStdDev = bottom10.length === 1 ? variance : variance / (bottom10.length - 1);
-				var propertyVariance = _.get(rollup, property) - mean;
+				var propertyVariance = _.get(rollup, propertyPath) - mean;
 				var sampleStdDev = stdDev === 0 ? 0 : Math.sqrt(propertyVariance * propertyVariance) / stdDev;
 				var sampleCorrectedStdDev = correctedStdDev <= 0 ? 0 : Math.sqrt(propertyVariance * propertyVariance) / correctedStdDev;
 				rollup.stdDev = stdDev;
@@ -717,20 +724,21 @@ var createBottom10Insight = function(user, rollup, property, repos, date){
 				rollup.mean = mean;
 				rollup.variance = propertyVariance;
 				rollup.outOf = bottom10.length;
+				rollup.propertyName = property.slice(-1).concat(property.slice(0, -1)).join('.');
 
 				var bottom10Index = _.sortedIndex(bottom10, rollup, function(r){
-					return _.get(r, property);
+					return _.get(r, propertyPath);
 				});
 
 				if(bottom10Index >= 100){
 					logger.debug(user.username, 'rollup didnt make it in bottom 10');
-					resolve(user, rollup, property, repos);
+					resolve(user, rollup, propertyPath, repos);
 				}
 
 				logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
-				createBottom10Card(user, bottom10Index, rollup, property, repos, date)
+				createBottom10Card(user, bottom10Index, rollup, propertyPath, repos, date)
 				.then(function(){
-					resolve(user, rollup, property, repos);
+					resolve(user, rollup, propertyPath, repos);
 				})
 				.catch(function(error){
 					reject(error);
@@ -776,17 +784,18 @@ var createDailyInsightCards = function(user, repos, date){
 		var createInsightForRollup = function(path, user, properties, repos, rollup){
 			var result = [];
 			for(var property in properties){
-				var propertyPath = [path, property].join('.');
+				var nextPath = path.slice();
+				nextPath.push(property);
 				var propertyVal = properties[property];
 				if(_.isNumber(propertyVal)){
-					var top10Promise = createTop10Insight(user, rollup, propertyPath, repos, date);
-					var bottom10Promise = createBottom10Insight(user, rollup, propertyPath, repos, date);
+					var top10Promise = createTop10Insight(user, rollup, nextPath, repos, date);
+					var bottom10Promise = createBottom10Insight(user, rollup, nextPath, repos, date);
 
 					result.push(top10Promise);
 					result.push(bottom10Promise);
 				}
 				else if(_.isObject(propertyVal)){
-					var promises = createInsightForRollup(propertyPath, user, properties[property], repos, rollup);
+					var promises = createInsightForRollup(nextPath, user, properties[property], repos, rollup);
 					result = result.concat(promises);
 				}
 			}
@@ -800,7 +809,7 @@ var createDailyInsightCards = function(user, repos, date){
 		for(var i = 0; i < rollups.length; i++){
 			logger.debug(user.username, 'creating insights for actionTags, objectTags, sum:', [rollups.actionTags, rollups.objectTags, rollups.sum]);
 			var rollup = rollups[i];
-			var insightPromises = createInsightForRollup('sum', user, rollup.sum, repos, rollup);
+			var insightPromises = createInsightForRollup(['sum'], user, rollup.sum, repos, rollup);
 			rollupPromises = rollupPromises.concat(insightPromises);
 		}
 
