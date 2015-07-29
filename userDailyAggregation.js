@@ -612,7 +612,7 @@ var createTop10Insight = function(user, rollup, property, repos, date){
 
 		logger.debug(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
 
-		repos.userRollupByDay.find(condition).limit(365).toArray(function(error, top10){
+		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, top10){
 			logger.debug(user.username, 'retrieved the top10');
 			if(top10.length < 3){
 				logger.debug(user.username, 'Less than 3 entries in top 10: ', propertyPath);
@@ -692,7 +692,7 @@ var createBottom10Insight = function(user, rollup, property, repos, date){
 
 		logger.debug(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
 
-		repos.userRollupByDay.find(condition).limit(365).toArray(function(error, bottom10){
+		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
 			logger.debug(user.username, 'retrieved the bottom10');
 				if(bottom10.length < 3){
 					logger.debug(user.username, 'Less than 3 entries in bottom 10: ', propertyPath);
@@ -766,6 +766,11 @@ var createDailyInsightCards = function(user, repos, date){
 		return condition;
 	};
 
+	// eas: if there are any rollups that are children of a parent and have the same
+	// mean and standard deviation, we can filter them out here. For example, if the author 
+	// never changes for a user, it could be filtered out here.
+	// Potentially, we could also go back and prune data that isn't any different for users 
+	// to save space in the database.
 	var getYesterdayRollupsFromDatabase = function(condition){
 		return q.Promise(function(resolve, reject){
 			repos.userRollupByDay.find(condition).toArray(function(error, yesterdaysRollups){
