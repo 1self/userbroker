@@ -2,6 +2,7 @@
 
 var appBroker = require('./appBroker');
 var userDailyAggregation = require('./userDailyAggregation');
+var eventReplayer = require('./eventReplayer');
 var winston = require('winston');
 var _ = require('lodash');
 var path = require('path');
@@ -30,6 +31,8 @@ var repos = {
 	userRollupByDay: {},
 	appBroker: {}
 };
+
+var messagePublisher = {};
 
 var streamsToUsers = {};
 
@@ -90,6 +93,8 @@ var setLogger = function(l){
 	_.map(eventModules, function(module){
 		module.setLogger(l);
 	});
+
+	eventReplayer.setLogger(l);
 };
 
 setLogger(winston);
@@ -156,6 +161,8 @@ var subscribeMessage = function(channel, message){
 			eventModules[i].processEvent(event, userForStream, repos);
 		}
 	}
+	// users/ed/objecttags/a,b,c/actiontags/a,b,c/date/2015-07-01/
+	// users/
 	else if(channel === 'users'){
 		var userMessage = JSON.parse(message);
 		processUserEvent(userMessage, repos.user);
@@ -166,15 +173,41 @@ var subscribeMessage = function(channel, message){
 			logger.info(message, 'asking processor to send users events to apps');
 			_.forEach(eventModules, cronDaily);
 		} 
-		else if(/cron\/daily\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})/.test(message)){
-			var matches = /cron\/daily\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})/.exec(message);
+		else if(/^cron\/daily\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.test(message)){
+			var matches = /^cron\/daily\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.exec(message);
 			var cronDailyUser = matches[1];
 			var date = matches[2];
 
-			logger.info(message, ['asking processor to send', cronDailyUser, 'to apps on', date].join(' '));
+			logger.info(cronDailyUser, 'initiating cron daily', date);
 			_.forEach(eventModules, function(module){
 				module.cronDaily([users[cronDailyUser]], repos, date);
 			});
+		}
+		else if(/^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})/.test(message)){
+			var matches = /^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})/.exec(message);
+			var user = matches[1];
+			var date = matches[2];
+			var objectTags = matches[3];
+			var actionTags = matches[4];
+			logger.info(user, 'initiating event replay', {date: date, objectTags: [], actionTags: []});
+
+			var eventSink = function(event){
+				messagePublisher('events', JSON.stringify(event));
+			}
+			eventReplayer.replayEvents(repos, users[user], date, [], [], eventSink);
+		}
+		else if(/^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)/.test(message)){
+			var matches = /^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)/.exec(message);
+			var user = matches[1];
+			var date = matches[2];
+			var objectTags = matches[3];
+			var actionTags = matches[4];
+			logger.info(user, 'initiating event replay', {date: date, objectTags: objectTags, actionTags: actionTags});
+
+			var eventSink = function(event){
+				messagePublisher('events', JSON.stringify(event));
+			}
+			eventReplayer.replayEvents(repos, users[user], date, [], [], eventSink);
 		}
 		else if(message.substring(0,7) === 'logging'){
 			logger.level = message.split('=')[1];
@@ -232,6 +265,14 @@ var setIdGenerator = function(generator){
 	repos.idGenerator = generator;
 };
 
+var setEventRepo = function(eventRepo){
+	repos.eventRepo = eventRepo;
+}
+
+var setMessagePublisher = function(publisher){
+	messagePublisher = publisher;
+}
+
 module.exports = {};
 module.exports.subscribeMessage = subscribeMessage;
 module.exports.loadUsers = loadUsers;
@@ -239,4 +280,6 @@ module.exports.setLogger = setLogger;
 module.exports.setUserRepo = setUserRepo;
 module.exports.setUserRollupRepo = setUserRollupRepo;
 module.exports.setAppBrokerRepo = setAppBrokerRepo;
+module.exports.setEventRepo = setEventRepo;
 module.exports.setIdGenerator = setIdGenerator;
+module.exports.setMessagePublisher = setMessagePublisher;	

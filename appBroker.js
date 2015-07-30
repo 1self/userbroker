@@ -157,6 +157,7 @@ var processEvent = function(streamEvent, user, repos){
 
 var cronDaily = function(users, repos){
 	logger.info('cron/daily', 'received');
+	logger.debug('users is ', users);
 
 	var sendUserEventsToApps = function(user){
 		if(user.apps === undefined){

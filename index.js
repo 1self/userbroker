@@ -14,30 +14,44 @@ process.on('uncaughtException', function(err) {
   throw err;
 });
 
+var redisClient = redis.createClient();
 var redisSubscribe = redis.createClient();
 redisSubscribe.subscribe('events');
 redisSubscribe.subscribe('users');
 redisSubscribe.subscribe('userbroker');
 
-var mongoUrl = process.env.DBURI || 'mongodb://localhost/quantifieddev';
-logger.info('using ' + url.parse(mongoUrl).host);
+var quantifiedDevUrl = process.env.DBURI || 'mongodb://localhost/quantifieddev';
+logger.info('for qd db using ' + url.parse(quantifiedDevUrl).host);
 
-MongoClient.connect(mongoUrl, function(err, db) {	
+var eventUrl = process.env.EVENTDBURI;
+logger.info('for events db using ' + url.parse(eventUrl).host);
 
-	logger.info('connected to db');
+MongoClient.connect(quantifiedDevUrl, function(err, qdDb) {	
+	logger.info('connected to qdDb');
 	if(err){
 		console.log(err);
 	}
 
-	broker.setUserRepo(db.collection('users'));
-	broker.setUserRollupRepo(db.collection('userRollupByDay'));
-	broker.setAppBrokerRepo(db.collection('appBroker'));
-	broker.setIdGenerator(function(){
-		return new ObjectID();
-	});
+	broker.setUserRepo(qdDb.collection('users'));
+	broker.setUserRollupRepo(qdDb.collection('userRollupByDay'));
+	broker.setAppBrokerRepo(qdDb.collection('appBroker'));
 
-	broker.loadUsers(db.collection('users'), function(){
-		redisSubscribe.on('message', broker.subscribeMessage);
+	var publishMessage = function(channel, message){
+		redisClient.publish('events', message);
+	}
+	
+	broker.setMessagePublisher(publishMessage);
+
+	MongoClient.connect(eventUrl, function(eventErr, eventDb){
+		broker.setIdGenerator(function(){
+			return new ObjectID();
+		});
+
+		broker.setEventRepo(eventDb.collection('oneself'));
+
+		broker.loadUsers(qdDb.collection('users'), function(){
+			redisSubscribe.on('message', broker.subscribeMessage);
+		});
 	});
 });
 	
