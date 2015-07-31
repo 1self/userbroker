@@ -760,7 +760,8 @@ var createDailyInsightCards = function(user, repos, date){
 	var createDatabaseQuery = function(){
 		var condition = {
 			userId: user._id,
-			date: date
+			date: date,
+			objectTags: {$nin: ["twitter", "foursquare", "hackernews", "stackoverflow"]}
 		};
 
 		return condition;
