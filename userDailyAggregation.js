@@ -836,7 +836,7 @@ var createDailyInsightCards = function(user, repos, date){
 
 var cronDaily = function(users, repos, date){
 	_.map(users, function(user){
-		var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'chris1self'];
+		var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'chris1self', 'chriscobb'];
 		if(_.includes(whitelist, user.username) === false){
 			logger.verbose(user.username, 'not on the whitelist, cron not running');
 			return;
