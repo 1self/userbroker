@@ -761,7 +761,7 @@ var createDailyInsightCards = function(user, repos, date){
 		var condition = {
 			userId: user._id,
 			date: date,
-			objectTags: {$not: {$in: ["twitter", "foursquare", "hackernews", "stackoverflow"]}}
+			objectTags: {$nin: ["twitter", "foursquare", "hackernews", "stackover"]}
 		};
 
 		return condition;
