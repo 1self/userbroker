@@ -67,7 +67,7 @@ var setLogger = function (newLogger){
 
 };
 
-var replayEvents = function(repos, user, date, actionTags, eventTags, eventSink){
+var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink){
 	logger.info(user.username, 'replaying events ', date);
 	// eas: see http://edsykes.blogspot.com/2015/07/a-text-only-trick-for-retrieving-day.html 
 	// for an explanation of why I add Z to the date.
@@ -79,6 +79,14 @@ var replayEvents = function(repos, user, date, actionTags, eventTags, eventSink)
 	 		$gte: date, 
 	 		$lte: date + 'Z'
 	 	}
+	}
+
+	if(objectTags.length > 0){
+		query["payload.objectTags"] = {$all: objectTags};
+	}
+
+	if(actionTags.length > 0){
+		query["payload.actionTags"] = {$all: actionTags};
 	}
 
 	repos.eventRepo.find(query).each(function(err, doc){
