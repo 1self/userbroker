@@ -108,7 +108,7 @@ var setLogger = function (newLogger){
 };
 
 var processEvent = function(streamEvent, user, repos){
-	var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'chris1self', 'chriscobb', 'scottmuc', 'anildigital', 'chinmay185', 'rpowis', 'mick'];
+	var whitelist = ['handelxh', 'testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'not-inept', 'chris1self', 'chriscobb', 'scottmuc', 'anildigital', 'chinmay185', 'rpowis', 'mick', 'mbriscoe88', 'anti', 'garfieldmoore', 'paulll', 'awjudd', 'crochi'];
 	if(_.includes(whitelist, user.username) === false){
 		logger.verbose(user.username, 'not on the whitelist, message not processed');
 		return;
@@ -761,7 +761,7 @@ var createDailyInsightCards = function(user, repos, date){
 		var condition = {
 			userId: user._id,
 			date: date,
-			objectTags: {$nin: ["twitter", "foursquare", "hackernews", "stackoverflow"]}
+			objectTags: {$nin: ["twitter", "foursquare", "hackernews", "stackoverflow", "instagram"]}
 		};
 
 		return condition;
@@ -837,7 +837,7 @@ var createDailyInsightCards = function(user, repos, date){
 
 var cronDaily = function(users, repos, date){
 	_.map(users, function(user){
-		var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'chris1self', 'chriscobb', 'scottmuc', 'anildigital', 'chinmay185', 'rpowis', 'mick'];
+		var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'not-inept', 'handelxh', 'chris1self', 'chriscobb', 'scottmuc', 'anildigital', 'chinmay185', 'rpowis', 'mick', 'mbriscoe88', 'anti', 'garfieldmoore', 'paulll', 'awjudd', 'crochi'];
 		if(_.includes(whitelist, user.username) === false){
 			logger.verbose(user.username, 'not on the whitelist, cron not running');
 			return;
