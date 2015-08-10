@@ -174,7 +174,7 @@ var subscribeMessage = function(channel, message){
 			_.forEach(eventModules, cronDaily);
 		} 
 		else if(/^cron\/daily\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.test(message)){
-			var matches = /^cron\/daily\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.exec(message);
+			var matches = /^cron\/daily\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.exec(message);
 			var cronDailyUser = matches[1];
 			var date = matches[2];
 
@@ -184,7 +184,7 @@ var subscribeMessage = function(channel, message){
 			});
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.test(message)){
-			var matches = /^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4})$/.exec(message);
+			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.exec(message);
 			var user = matches[1];
 			var date = matches[2];
 			var objectTags = matches[3];
@@ -197,7 +197,7 @@ var subscribeMessage = function(channel, message){
 			eventReplayer.replayEvents(repos, users[user], date, [], [], eventSink);
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})$/.test(message)){
-			var matches = /^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})$/.exec(message);
+			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})$/.exec(message);
 			var user = matches[1];
 			var date = matches[2];
 			var objectTags = matches[3];
@@ -210,7 +210,7 @@ var subscribeMessage = function(channel, message){
 			eventReplayer.replayEvents(repos, users[user], date, [], [], eventSink);
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
-			var matches = /^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
+			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
 			var user = matches[1];
 			var date = matches[2];
 			var objectTags = matches[3];
@@ -223,7 +223,7 @@ var subscribeMessage = function(channel, message){
 			eventReplayer.replayEvents(repos, users[user], date, [], [], eventSink);
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
-			var matches = /^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
 			var user = matches[1];
 			var date = matches[2];
 			var objectTags = matches[3].split(",");
@@ -237,7 +237,7 @@ var subscribeMessage = function(channel, message){
 			eventReplayer.replayEvents(repos, users[user], date, objectTags, actionTags, eventSink);
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
-			var matches = /^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
 			var user = matches[1];
 			var date = matches[2];
 			var objectTags = matches[3].split(",");
@@ -251,7 +251,7 @@ var subscribeMessage = function(channel, message){
 			eventReplayer.replayEvents(repos, users[user], date, objectTags, actionTags, eventSink);
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
-			var matches = /^events\/replay\/user\/([a-zA-Z0-9]+)\/date\/(\d{4})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
 			var user = matches[1];
 			var date = matches[2];
 			var objectTags = matches[3].split(",");
