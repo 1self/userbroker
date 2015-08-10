@@ -108,8 +108,9 @@ var setLogger = function (newLogger){
 };
 
 var processEvent = function(streamEvent, user, repos){
-	var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'chris1self', 'chriscobb', 'scottmuc', 'anildigital', 'chinmay185', 'rpowis', 'mick'];
-	if(_.includes(whitelist, user.username) === false){
+	var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
+
+	if(_.indexOf(whitelist, user.username, true) === -1){
 		logger.verbose(user.username, 'not on the whitelist, message not processed');
 		return;
 	}
@@ -837,8 +838,8 @@ var createDailyInsightCards = function(user, repos, date){
 
 var cronDaily = function(users, repos, date){
 	_.map(users, function(user){
-		var whitelist = ['testuser', 'm', 'ed', 'edf', 'fbtest', 'martin', 'chris1self', 'chriscobb', 'scottmuc', 'anildigital', 'chinmay185', 'rpowis', 'mick'];
-		if(_.includes(whitelist, user.username) === false){
+		var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
+		if(_.indexOf(whitelist, user.username, true) === -1){
 			logger.verbose(user.username, 'not on the whitelist, cron not running');
 			return;
 		}
