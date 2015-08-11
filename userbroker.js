@@ -176,6 +176,7 @@ var subscribeMessage = function(channel, message){
 			_.forEach(eventModules, cronDaily);
 		}
 		else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+			// date range, object tags, action tags
 			var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
 			var cronDailyUser = matches[1];
 			var params = {
@@ -199,15 +200,45 @@ var subscribeMessage = function(channel, message){
 				});	
 			}
 		} 
-		else if(/^cron\/daily\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.test(message)){
-			var matches = /^cron\/daily\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.exec(message);
+		else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})$/.test(message)){
+			var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})$/.exec(message);
 			var cronDailyUser = matches[1];
-			var date = matches[2];
+			var params = {
+			}
 
-			logger.info(cronDailyUser, 'initiating cron daily', date);
+			var fromDate = matches[2];
+			var toDate = matches[3];
+
+			logger.info(cronDailyUser, 'initiating cron daily', matches);
+			var iter = moment(fromDate).twix(toDate, {allDay: true}).iterate("days");
+			while(iter.hasNext()){
+				var nextDate = iter.next();
+				var formattedDate = nextDate.format('YYYY-MM-DD');
+				params.date = formattedDate;
+
+				logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
+				_.forEach(eventModules, function(module){
+					module.cronDaily([users[cronDailyUser]], repos, params);
+				});	
+			}
+		}
+
+		else if(/^cron\/daily\/user\/(.+)$/.test(message)){
+			var matches = /^cron\/daily\/user\/(.+)$/.exec(message);
+			var cronDailyUser = matches[1];
+			var params = {
+			}
+
+			var d = new Date();
+			d.setDate(d.getDate() - 1);
+			params.date = d.toISOString().substring(0, 10); 
+
+			logger.info(cronDailyUser, 'initiating cron daily', matches);
+		
+			logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
 			_.forEach(eventModules, function(module){
-				module.cronDaily([users[cronDailyUser]], repos, date);
-			});
+				module.cronDaily([users[cronDailyUser]], repos, params);
+			});	
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.test(message)){
 			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.exec(message);

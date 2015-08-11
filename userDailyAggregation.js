@@ -368,6 +368,7 @@ var createtop10Card = function(user, position, rollup, property, repos){
 
 		if(rollup.variance < 0){
 			logger.debug(user.username, 'variance is negative, ignoring for top 10');
+			resolve();
 			return;
 		}
 
@@ -486,6 +487,7 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 
 		if(rollup.variance >= 0){
 			logger.debug(user.username, 'variance is positive, ignoring for bottom 10');
+			resolve();
 			return;
 		}
 
@@ -778,9 +780,7 @@ var createDailyInsightCards = function(user, repos, params){
 			condition.date = queryParams.date;
 		}
 		else { // date === undefined
-			var d = new Date();
-			d.setDate(d.getDate() - 1);
-			condition.date = d.toISOString().substring(0, 10); 
+			throw "date wasnt specified for cron job";
 		}
 
 		return condition;
