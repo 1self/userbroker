@@ -7,6 +7,8 @@ var winston = require('winston');
 var _ = require('lodash');
 var path = require('path');
 var assert = require('assert');
+var moment = require('moment');
+require('twix'); // moment plugin
 
 winston.level = 'info';
 winston.info('LOGGINGDIR: ' + process.env.LOGGINGDIR);
@@ -172,6 +174,30 @@ var subscribeMessage = function(channel, message){
 		if(message === 'cron/daily'){
 			logger.info(message, 'asking processor to send users events to apps');
 			_.forEach(eventModules, cronDaily);
+		}
+		else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+			var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+			var cronDailyUser = matches[1];
+			var params = {
+				objectTags: matches[4].split(","),
+				actionTags: matches[5].split(",")
+			}
+
+			var fromDate = matches[2];
+			var toDate = matches[3];
+
+			logger.info(cronDailyUser, 'initiating cron daily', matches);
+			var iter = moment(fromDate).twix(toDate, {allDay: true}).iterate("days");
+			while(iter.hasNext()){
+				var nextDate = iter.next();
+				var formattedDate = nextDate.format('YYYY-MM-DD');
+				params.date = formattedDate;
+
+				logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
+				_.forEach(eventModules, function(module){
+					module.cronDaily([users[cronDailyUser]], repos, params);
+				});	
+			}
 		} 
 		else if(/^cron\/daily\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.test(message)){
 			var matches = /^cron\/daily\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2}$)/.exec(message);

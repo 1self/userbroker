@@ -19,11 +19,12 @@
   "dependencies": {
     "database-cleaner": "^0.9.1",
     "lodash": "^3.6.0",
-    "moment": "^2.10.3",
+    "moment": "^2.10.6",
     "mongodb": "^2.0.27",
     "q": "^1.4.1",
     "redis": "^0.12.1",
     "request": "^2.55.0",
+    "twix": "^0.7.0",
     "winston": "^1.0.0"
   },
   "devDependencies": {
