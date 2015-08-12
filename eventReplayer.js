@@ -73,6 +73,7 @@ var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink
 	// for an explanation of why I add Z to the date.
 	if(user.streams === undefined){
 		logger.info(user.username, 'no streams');
+		return;
 	}
 
 	var query = {
