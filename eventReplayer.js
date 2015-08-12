@@ -71,6 +71,10 @@ var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink
 	logger.info(user.username, 'replaying events ', date);
 	// eas: see http://edsykes.blogspot.com/2015/07/a-text-only-trick-for-retrieving-day.html 
 	// for an explanation of why I add Z to the date.
+	if(user.streams === undefined){
+		logger.info(user.username, 'no streams');
+	}
+
 	var query = {
 	 	"payload.streamid": {
 	 		$in: user.streams.map(function(stream){return stream.streamid;})
