@@ -160,6 +160,11 @@ var cronDaily = function(users, repos){
 	logger.debug('users is ', users);
 
 	var sendUserEventsToApps = function(user){
+		if(user === undefined){
+			logger.info('unknown', 'user unknown');
+			return;
+		}
+		
 		if(user.apps === undefined){
 			return;
 		}

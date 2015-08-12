@@ -98,6 +98,9 @@ var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink
 		if(doc){
 			eventSink(doc.payload);
 		}
+		else if(doc == null){
+			logger.info(user.username, 'finished playing back events');
+		}
 	})
 };
 
