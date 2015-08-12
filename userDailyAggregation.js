@@ -618,7 +618,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 		logger.debug(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
 
-		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, top10){
+		repos.userRollupByDay.find(condition).toArray(function(error, top10){
 			logger.debug(user.username, 'retrieved the top10');
 			if(top10.length < 3){
 				logger.debug(user.username, 'Less than 3 entries in top 10: ', propertyPath);
