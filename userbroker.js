@@ -205,7 +205,7 @@ var subscribeMessage = function(channel, message){
 
 				logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
 				_.forEach(eventModules, function(module){
-					module.cronDaily(lookedUpUser, repos, params);
+					module.cronDaily([lookedUpUser], repos, params);
 				});	
 			}
 		} 
@@ -234,7 +234,7 @@ var subscribeMessage = function(channel, message){
 
 				logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
 				_.forEach(eventModules, function(module){
-					module.cronDaily(lookedUpUser, repos, params);
+					module.cronDaily([lookedUpUser], repos, params);
 				});	
 			}
 		}
@@ -259,7 +259,7 @@ var subscribeMessage = function(channel, message){
 		
 			logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
 			_.forEach(eventModules, function(module){
-				module.cronDaily(lookedUpUser, repos, params);
+				module.cronDaily([lookedUpUser], repos, params);
 			});	
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.test(message)){
