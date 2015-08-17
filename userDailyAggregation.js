@@ -756,7 +756,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 
 
 var createDailyInsightCards = function(user, repos, params){
-	logger.info(user.username, ['cron/daily', params.date, 'creating'].join(': '));
+	logger.info(user.username, ['cron/daily', params.date , 'creating'].join(': '));
 	logger.debug(user.username, 'params passed in are ', params);
 
 	var createDatabaseQuery = function(queryParams){
