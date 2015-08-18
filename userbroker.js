@@ -144,8 +144,13 @@ var processUserEvent = function(userEvent, userRepository){
 	logger.info(userEvent.username, 'processed a user event', userEvent);
 };
 
-var cronDaily = function(module){
-	module.cronDaily(users, repos);
+var cronDailyYesterday = function(module){
+	var yesterday = moment().subtract(1, 'days');
+	var params = {
+		date: yesterday.format("YYYY-MM-DD")
+	}
+
+	module.cronDaily(users, repos, params);
 };
 
 var subscribeMessage = function(channel, message){
@@ -173,7 +178,7 @@ var subscribeMessage = function(channel, message){
 		logger.info(channel, "recognised");
 		if(message === 'cron/daily'){
 			logger.info(message, 'asking processor to send users events to apps');
-			_.forEach(eventModules, cronDaily);
+			_.forEach(eventModules, cronDailyYesterday);
 		}
 		else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
 			// date range, object tags, action tags
@@ -208,6 +213,20 @@ var subscribeMessage = function(channel, message){
 					module.cronDaily([lookedUpUser], repos, params);
 				});	
 			}
+		} 
+		else if(/^cron\/daily\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
+			// date range, object tags, action tags
+			var matches = /^cron\/daily\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
+			var date = matches[1];
+
+			var params = {
+				date: date
+			}
+
+			logger.info(cronDailyUser, ['cron/daily', date, 'requesting '].join(': '));
+			_.forEach(eventModules, function(module){
+				module.cronDaily(users, repos, params);
+			});	
 		} 
 		else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})$/.test(message)){
 			var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})$/.exec(message);
