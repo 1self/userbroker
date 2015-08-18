@@ -280,7 +280,7 @@ var processEvent = function(streamEvent, user, repos){
 	})
 	.flatten()
 	.forEach(function(measure){
-                logger.debug(user.username, "adding measure, [measure]", measure);
+                logger.silly(user.username, "adding measure, [measure]", measure);
 		var dayDate = measure.date.substring(0, 10);
 		var increment = "properties." + measure.key + "." + measure.date.substring(11, 13);
 		var incrementCounts = "count." + measure.key;

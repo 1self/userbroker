@@ -132,7 +132,7 @@ var processEvent = function(streamEvent, user, repos){
 		return;
 	} 
 
-	if(!(user.username === 'ed' || user.username === 'adrianbanks' || user.username === 'm'|| user.username === 'anildigital' || user.username === 'devika' || user.username === 'devaroop' || user.username === 'douglas'
+	if(!(user.username === 'adrianbanks' || user.username === 'anildigital' || user.username === 'devika' || user.username === 'devaroop' || user.username === 'douglas'
 		)){
 		logger.verbose(user.username, 'event is for user not on the whitelist');
 		return;
