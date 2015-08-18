@@ -329,6 +329,7 @@ var processEvent = function(streamEvent, user, repos){
 var createDateCard = function(user, repos, params){
 	logger.debug(user.username, "creating date card, [params]", params);
 	return q.Promise(function(resolve, reject) {
+
 		var card = {};
 		card.id = repos.idGenerator();
 		card.type = 'date';
@@ -352,6 +353,9 @@ var createDateCard = function(user, repos, params){
 		logger.debug(user.username, 'Adding date card');
 		var resolveParams = {};
 		_.assign(resolveParams, params);
+		resolve(resolveParams);
+		return;
+
 		repos.user.update(condition, operation, options, function(error){
 			if(error){
 				reject("Database error: " + error);
@@ -392,11 +396,12 @@ var createtop10Card = function(user, position, rollup, property, repos){
 		card.sampleCorrectedStdDev = rollup.sampleCorrectedStdDev;
 		card.mean = rollup.mean;
 		card.variance = rollup.variance;
+		card.value = rollup.value;
+		card.sortingValue = -(rollup.value);
 
 		card.cardDate = rollup.date;
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, encodeURIComponent(property), '.json'].join('/');
-		card.chart += "?to=" + rollup.date;
 
 		var positionText;
 		if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
@@ -510,11 +515,12 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 		card.sampleCorrectedStdDev = rollup.sampleCorrectedStdDev;
 		card.mean = rollup.mean;
 		card.variance = rollup.variance;
+		card.value = rollup.value;
+		card.sortingValue = rollup.value;
 		
 		card.cardDate = rollup.date;
 		card.generatedDate = new Date().toISOString();
 		card.chart = ['/v1/users', user.username, 'rollups', 'day', rollup.objectTags, rollup.actionTags, encodeURIComponent(property), '.json'].join('/');
-		card.chart += "?to=" + rollup.date;
 
 		var positionText;
 		if(card.objectTags.toString() === 'computer,software' && card.actionTags.toString() === 'develop'){
@@ -603,7 +609,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 				userId: rollup.userId,
 				actionTags: rollup.actionTags,
 				objectTags: rollup.objectTags,
-				date: {$lte: rollup.date}
+				date: {$lt: rollup.date}
 			},
 			$orderby: {}
 		};
@@ -621,11 +627,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 		repos.userRollupByDay.find(condition).toArray(function(error, top10){
 			logger.debug(user.username, 'retrieved the top10');
-			if(top10.length < 3){
-				logger.debug(user.username, 'Less than 3 entries in top 10: ', propertyPath);
-				resolve(user, rollup, propertyPath, repos);
-				return;
-			}
+			
 
 			var mean = _.sum(top10, propertyPath) / top10.length;
 			var sumSquares = _.reduce(top10, function(total, item){
@@ -652,8 +654,9 @@ var createTop10Insight = function(user, rollup, property, repos){
 			rollup.variance = propertyVariance;
 			rollup.outOf = top10.length;
 			rollup.propertyName = property.slice(-1).concat(property.slice(0, -1)).join('.');
+			rollup.value = _.get(rollup, propertyPath);
 
-			var top10Index = _.sortedIndex(top10, rollup, function(r){
+			var top10Index = _.sortedLastIndex(top10, rollup, function(r){
 				return -(_.get(r, propertyPath));
 			});
 
@@ -683,7 +686,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				userId: rollup.userId,
 				actionTags: rollup.actionTags,
 				objectTags: rollup.objectTags,
-				date: {$lte: rollup.date}
+				date: {$lt: rollup.date}
 			},
 			$orderby: {}
 		};
@@ -701,11 +704,6 @@ var createBottom10Insight = function(user, rollup, property, repos){
 
 		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
 			logger.debug(user.username, 'retrieved the bottom10');
-				if(bottom10.length < 3){
-					logger.debug(user.username, 'Less than 3 entries in bottom 10: ', propertyPath);
-					resolve(user, rollup, propertyPath, repos);
-					return;
-				}
 
 				var mean = _.sum(bottom10, propertyPath) / bottom10.length;
 				var sumSquares = _.reduce(bottom10, function(total, item){
@@ -732,8 +730,9 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				rollup.variance = propertyVariance;
 				rollup.outOf = bottom10.length;
 				rollup.propertyName = property.slice(-1).concat(property.slice(0, -1)).join('.');
+				rollup.value = _.get(rollup, propertyPath);
 
-				var bottom10Index = _.sortedIndex(bottom10, rollup, function(r){
+				var bottom10Index = _.sortedLastIndex(bottom10, rollup, function(r){
 					return _.get(r, propertyPath);
 				});
 
