@@ -665,7 +665,7 @@ var createTop10Insight = function(user, rollup, property, repos){
 				resolve(user, rollup, propertyPath, repos);
 			}
 
-			logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
+			logger.debug(user.username, 'checking dateTimes: ', [rollup.date, rollup.date]);
 			
 			createtop10Card(user, top10Index, rollup, propertyPath, repos)
 			.then(function(){
@@ -741,7 +741,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 					resolve(user, rollup, propertyPath, repos);
 				}
 
-				logger.debug(user.username, 'checking dateTimes: ', [rollup.dateTime, rollup.dateTime]);
+				logger.debug(user.username, 'checking dateTimes: ', [rollup.date, rollup.date]);
 				createBottom10Card(user, bottom10Index, rollup, propertyPath, repos)
 				.then(function(){
 					resolve(user, rollup, propertyPath, repos);
