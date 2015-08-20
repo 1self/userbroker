@@ -372,11 +372,9 @@ var createtop10Card = function(user, position, rollup, property, repos){
 		logger.debug(user.username, 'Adding top10 card');
 
 		if(rollup.variance < 0){
-			logger.debug(user.username, 'variance is negative, ignoring for top 10, [variance, actionTags]', [rollup.variance, rollup.actionTags]);
-			resolve();
-			return;
+			logger.debug(user.username, 'variance is negative, ignoring for top 10, [actionTags, objectTags, value, variance, mean]', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			return;	
 		}
-
 		var card = {};
 		card.id = repos.idGenerator();
 		card.type = "top10";
