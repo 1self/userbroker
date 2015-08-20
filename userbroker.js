@@ -410,7 +410,12 @@ var subscribeMessage = function(channel, message){
 
 var loadUsers = function(userRepository, callback){
 	logger.info('loading users', 'start');
-	userRepository.find().toArray(function(error, docs){
+	var projection = {
+		username: true,
+		streams: true
+	};
+
+	userRepository.find({}, projection).toArray(function(error, docs){
 		logger.debug('loading users', 'database call complete');
 	
 		if(error){
