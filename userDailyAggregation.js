@@ -372,7 +372,7 @@ var createtop10Card = function(user, position, rollup, property, repos){
 		logger.debug(user.username, 'Adding top10 card');
 
 		if(rollup.variance < 0){
-			logger.debug(user.username, 'variance is negative, ignoring for top 10');
+			logger.debug(user.username, 'variance is negative, ignoring for top 10, [variance, actionTags]', [rollup.variance, rollup.actionTags]);
 			resolve();
 			return;
 		}
