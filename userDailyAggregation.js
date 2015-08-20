@@ -847,8 +847,7 @@ var createDailyInsightCards = function(user, repos, params){
 		logger.info(user.username, finishMessage);
 	};
 
-	createDateCard(user, repos, params)
-	.then(createDatabaseQuery)
+	q.fcall(createDatabaseQuery, params)
 	.then(getRollupsFromDatabase)
 	.then(generateInsightsFromRollups)
 	.then(logFinished)
