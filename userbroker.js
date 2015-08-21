@@ -39,7 +39,7 @@ var messagePublisher = {};
 var streamsToUsers = {};
 
 var eventModules = [];
-eventModules.push(appBroker);
+//eventModules.push(appBroker);
 eventModules.push(userDailyAggregation);
 
 var logger = {};
@@ -238,23 +238,32 @@ var subscribeMessage = function(channel, message){
 				return;
 			}
 
-			var params = {
-			}
-
 			var fromDate = matches[2];
 			var toDate = matches[3];
 
 			logger.info(cronDailyUser, 'initiating cron daily', matches);
-			var iter = moment(fromDate).twix(toDate, {allDay: true}).iterate("days");
-			while(iter.hasNext()){
-				var nextDate = iter.next();
-				var formattedDate = nextDate.format('YYYY-MM-DD');
-				params.date = formattedDate;
+			logger.debug(cronDailyUser, 'creating date range');
+			var dateRange = moment(fromDate).twix(toDate, {allDay: true});
+			logger.debug(cronDailyUser, 'creating date array');
+			var iter = dateRange.iterate("days");
+			logger.debug(cronDailyUser, 'created date array');
 
-				logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
-				_.forEach(eventModules, function(module){
-					module.cronDaily([lookedUpUser], repos, params);
-				});	
+			var callCron = function(){
+					var params = {};
+					var nextDate = iter.next();
+					var formattedDate = nextDate.format('YYYY-MM-DD');
+					params.date = formattedDate;
+
+					logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
+					_.forEach(eventModules, function(module){
+						module.cronDaily([lookedUpUser], repos, params);
+					});	
+				}
+
+			while(iter.hasNext()){
+				// call cron forces the creation of the params object. Otherwise it will get hoisted and shared
+				// between all of the promises
+				callCron();
 			}
 		}
 
@@ -447,6 +456,10 @@ var setUserRepo = function(userRepo){
 	repos.user = userRepo;
 };
 
+var setCardsRepo = function(repo){
+	repos.cards = repo;
+};
+
 var setUserRollupRepo = function(userRollupRepo){
 	repos.userRollupByDay = userRollupRepo;
 };
@@ -475,5 +488,6 @@ module.exports.setUserRepo = setUserRepo;
 module.exports.setUserRollupRepo = setUserRollupRepo;
 module.exports.setAppBrokerRepo = setAppBrokerRepo;
 module.exports.setEventRepo = setEventRepo;
+module.exports.setCardsRepo = setCardsRepo;
 module.exports.setIdGenerator = setIdGenerator;
 module.exports.setMessagePublisher = setMessagePublisher;	

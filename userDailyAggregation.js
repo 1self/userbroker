@@ -373,10 +373,12 @@ var createtop10Card = function(user, position, rollup, property, repos){
 
 		if(rollup.variance < 0){
 			logger.debug(user.username, 'variance is negative, ignoring for top 10, [actionTags, objectTags, value, variance, mean]', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			resolve();
 			return;	
 		}
+
 		var card = {};
-		card.id = repos.idGenerator();
+		card.userId = rollup.userId;	
 		card.type = "top10";
 		card.outOf = rollup.outOf;
 		card.thumbnailMedia = 'chart.html';
@@ -452,29 +454,15 @@ var createtop10Card = function(user, position, rollup, property, repos){
 			card.cardText = positionText + 'highest ever number of commits';
 		}
 
-		var condition = {
-			_id: rollup.userId,
-		};
-
-		var operation = {
-			$push: {
-				cards: card
-			}
-		};
-
-		var options = {
-			upsert: true
-		};
-
-		logger.debug(user.username, 'Adding card, condition, operation, options', [condition, operation, options]);
-		repos.user.update(condition, operation, options, function(error, response){
+		logger.debug(user.username, 'Adding card, ', [card.propertyName]);
+		repos.cards.insert(card, function(error, response){
 			if(error){
-				logger.error(user.username, 'error inserting card, error: ', error);
+				logger.error(user.username, 'error inserting card, [property, error]: ', [card.propertyName, error]);
 				reject(error);			
 			}
 			else
 			{
-				logger.debug(user.username, 'card inserted, response: ', response.result);
+				logger.debug(user.username, 'top 10 card inserted, [property, response], : ', [card.propertyName, response.result]);
 				resolve();
 			}
 		});
@@ -495,7 +483,7 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 			return;
 		}
 
-		card.id = repos.idGenerator();
+		card.userId = rollup.userId;
 		card.type = "bottom10";
 		card.outOf = rollup.outOf;
 		card.thumbnailMedia = 'chart.html';
@@ -572,27 +560,15 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 			card.cardText = positionText + 'lowest ever number of commits';
 		}
 
-		var condition = {
-			_id: rollup.userId,
-		};
-
-		var operation = {
-			$push: {
-				cards: card
-			}
-		};
-
-		var options = {
-			upsert: true
-		};
-
-		logger.debug(user.username, 'Adding card, condition, operation, options', [condition, operation, options]);
-		repos.user.update(condition, operation, options, function(error){
+		logger.debug(user.username, 'Adding card, ', [card.propertyName]);
+		repos.cards.insert(card, function(error, response){
 			if(error){
+				logger.error(user.username, 'bottom 10 error inserting card, [propertyName, error]: ', [card.propertyName, error]);
 				reject(error);
 			}
 			else
 			{
+				logger.debug(user.username, 'bottom 10 card inserted, [property, response], : ', [card.propertyName, response.result]);
 				resolve();
 			}
 		});
@@ -601,7 +577,8 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 
 var createTop10Insight = function(user, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
-		logger.debug(user.username, 'analyzing top10');
+		var propertyPath = property.join(".");
+		logger.debug([user.username, rollup.date].join(':'), 'analyzing top10', [propertyPath]);
 		var condition = {
 			$query: {
 				userId: rollup.userId,
@@ -612,7 +589,6 @@ var createTop10Insight = function(user, rollup, property, repos){
 			$orderby: {}
 		};
 
-		var propertyPath = property.join(".");
 		condition.$query[propertyPath] = {$exists: true};
 		condition.$orderby[propertyPath] = -1;
 
@@ -663,22 +639,25 @@ var createTop10Insight = function(user, rollup, property, repos){
 				resolve(user, rollup, propertyPath, repos);
 			}
 
-			logger.debug(user.username, 'checking dateTimes: ', [rollup.date, rollup.date]);
+			logger.debug(user.username, 'top 10 checking dateTimes: ', [rollup.date, rollup.date]);
 			
 			createtop10Card(user, top10Index, rollup, propertyPath, repos)
 			.then(function(){
+				logger.debug(user.username, 'top 10 finished with rollup, [propertyPath]', [propertyPath])
 				resolve(user, rollup, propertyPath, repos);
 			})
 			.catch(function(error){
 				reject(error);
-			});
+			})
+			.done();
 		});
 	});
 };
 
 var createBottom10Insight = function(user, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
-		logger.debug(user.username, 'analyzing bottom10');
+		var propertyPath = property.join(".");
+		logger.debug([user.username, rollup.date].join(':'), 'analyzing bottom10, [propertyPath]', [propertyPath]);
 		var condition = {
 			$query: {
 				userId: rollup.userId,
@@ -689,7 +668,6 @@ var createBottom10Insight = function(user, rollup, property, repos){
 			$orderby: {}
 		};
 
-		var propertyPath = property.join(".");
 		condition.$query[propertyPath] = {$exists: true};
 		condition.$orderby[propertyPath] = 1;
 
@@ -742,6 +720,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				logger.debug(user.username, 'checking dateTimes: ', [rollup.date, rollup.date]);
 				createBottom10Card(user, bottom10Index, rollup, propertyPath, repos)
 				.then(function(){
+					logger.debug(user.username, 'bottom 10 finished with rollup, [propertyPath]', [propertyPath])
 					resolve(user, rollup, propertyPath, repos);
 				})
 				.catch(function(error){
@@ -753,7 +732,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 
 
 var createDailyInsightCards = function(user, repos, params){
-	logger.info(user.username, ['cron/daily', params.date , 'creating'].join(': '));
+	logger.	info(user.username, ['cron/daily', params.date , 'creating'].join(': '));
 	logger.debug(user.username, 'params passed in are ', params);
 
 	var createDatabaseQuery = function(queryParams){
@@ -851,13 +830,14 @@ var createDailyInsightCards = function(user, repos, params){
 	.then(logFinished)
 	.catch(function(error){
 		logger.error(user.username, 'error occurred while generating insight', error);
-	});
+	})
+	.done();
 };
 
 var cronDaily = function(users, repos, params){
 	_.map(users, function(user){
 		var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
-		if(_.indexOf(whitelist, user.username, true) === -1){
+		if(_.sortedIndex(whitelist, user.username, true) === -1){
 			logger.verbose(user.username, 'not on the whitelist, cron not running');
 			return;
 		}

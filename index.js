@@ -35,6 +35,7 @@ MongoClient.connect(quantifiedDevUrl, function(err, qdDb) {
 	broker.setUserRepo(qdDb.collection('users'));
 	broker.setUserRollupRepo(qdDb.collection('userRollupByDay'));
 	broker.setAppBrokerRepo(qdDb.collection('appBroker'));
+	broker.setCardsRepo(qdDb.collection('cards'));
 
 	var publishMessage = function(channel, message){
 		redisClient.publish('events', message);
