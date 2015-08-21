@@ -377,6 +377,18 @@ var createtop10Card = function(user, position, rollup, property, repos){
 			return;	
 		}
 
+		if(isNaN(rollup.mean)){
+			logger.debug(user.username, 'only a single value, no mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			resolve();
+			return;	
+		}
+
+		if(rollup.sampleCorrectedStdDev === 0){
+			logger.debug(user.username, 'rollup is the same as mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			resolve();
+			return;	
+		}
+
 		var card = {};
 		card.userId = rollup.userId;	
 		card.type = "top10";
@@ -481,6 +493,18 @@ var createBottom10Card = function(user, position, rollup, property, repos){
 			logger.debug(user.username, 'variance is positive, ignoring for bottom 10');
 			resolve();
 			return;
+		}
+
+		if(isNaN(rollup.mean)){
+			logger.debug(user.username, 'only a single value, no mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			resolve();
+			return;	
+		}
+
+		if(rollup.sampleCorrectedStdDev === 0){
+			logger.debug(user.username, 'rollup is the same as mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			resolve();
+			return;	
 		}
 
 		card.userId = rollup.userId;
@@ -601,8 +625,13 @@ var createTop10Insight = function(user, rollup, property, repos){
 
 		repos.userRollupByDay.find(condition).toArray(function(error, top10){
 			logger.debug(user.username, 'retrieved the top10');
-			
 
+			if(top10.length === 0){
+				logger.debug(user.username, 'nothing in the top10, [propertyPath]', propertyPath);
+				resolve(user, rollup, propertyPath, repos);
+				return;
+			}
+			
 			var mean = _.sum(top10, propertyPath) / top10.length;
 			var sumSquares = _.reduce(top10, function(total, item){
 				var variance = _.get(item, propertyPath) - mean;
@@ -634,9 +663,10 @@ var createTop10Insight = function(user, rollup, property, repos){
 				return -(_.get(r, propertyPath));
 			});
 
-			if(top10Index >= 100){
+			if(top10Index >= 10){
 				logger.debug(user.username, 'rollup didnt make it in top10');
 				resolve(user, rollup, propertyPath, repos);
+				return;
 			}
 
 			logger.debug(user.username, 'top 10 checking dateTimes: ', [rollup.date, rollup.date]);
@@ -681,6 +711,12 @@ var createBottom10Insight = function(user, rollup, property, repos){
 		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
 			logger.debug(user.username, 'retrieved the bottom10');
 
+			if(bottom10.length === 0){
+				logger.debug(user.username, 'nothing in the bottom10, [propertyPath]', propertyPath);
+				resolve(user, rollup, propertyPath, repos);
+				return;
+			}
+
 				var mean = _.sum(bottom10, propertyPath) / bottom10.length;
 				var sumSquares = _.reduce(bottom10, function(total, item){
 					var variance = _.get(item, propertyPath) - mean;
@@ -712,9 +748,10 @@ var createBottom10Insight = function(user, rollup, property, repos){
 					return _.get(r, propertyPath);
 				});
 
-				if(bottom10Index >= 100){
+				if(bottom10Index >= 10){
 					logger.debug(user.username, 'rollup didnt make it in bottom 10');
 					resolve(user, rollup, propertyPath, repos);
+					return;
 				}
 
 				logger.debug(user.username, 'checking dateTimes: ', [rollup.date, rollup.date]);
@@ -725,7 +762,8 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				})
 				.catch(function(error){
 					reject(error);
-				});
+				})
+				.done();
 		});
 	});
 };

@@ -185,25 +185,27 @@ var subscribeMessage = function(channel, message){
 			var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
 			var cronDailyUser = matches[1];
 
-			var lookedUpUser = [users[cronDailyUser]];
+			var lookedUpUser = users[cronDailyUser];
 			if(lookedUpUser === undefined){
 				logger.info(cronDailyUser, 'cant initiate unknown user for cron daily', matches);
 				return;
-			}
-
-			var params = {
-				objectTags: matches[4].split(","),
-				actionTags: matches[5].split(",")
 			}
 
 			var fromDate = matches[2];
 			var toDate = matches[3];
 
 			logger.info(cronDailyUser, 'initiating cron daily', matches);
+			logger.debug(cronDailyUser, 'creating date range');
+			var dateRange = moment(fromDate).twix(toDate, {allDay: true});
+			logger.debug(cronDailyUser, 'creating date array');
+			var iter = dateRange.iterate("days");
+			logger.debug(cronDailyUser, 'created date array');
 			
-
-			var iter = moment(fromDate).twix(toDate, {allDay: true}).iterate("days");
-			while(iter.hasNext()){
+			var cronDaily = function(){
+				var params = {
+					objectTags: matches[4].split(","),
+					actionTags: matches[5].split(",")
+				}
 				var nextDate = iter.next();
 				var formattedDate = nextDate.format('YYYY-MM-DD');
 				params.date = formattedDate;
@@ -212,6 +214,11 @@ var subscribeMessage = function(channel, message){
 				_.forEach(eventModules, function(module){
 					module.cronDaily([lookedUpUser], repos, params);
 				});	
+			};
+			
+			var iter = moment(fromDate).twix(toDate, {allDay: true}).iterate("days");
+			while(iter.hasNext()){
+				cronDaily();
 			}
 		} 
 		else if(/^cron\/daily\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
