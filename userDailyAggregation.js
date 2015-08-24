@@ -626,14 +626,14 @@ var createTop10Insight = function(user, rollup, property, repos){
 		repos.userRollupByDay.find(condition).toArray(function(error, top10){
 			logger.debug(user.username, 'retrieved the top10');
 
-			if(top10.length === 0){
-				logger.debug(user.username, 'nothing in the top10, [propertyPath]', propertyPath);
-				resolve(user, rollup, propertyPath, repos);
-				return;
-			}
+			rollup.value = _.get(rollup, propertyPath);
 			
-			var mean = _.sum(top10, propertyPath) / top10.length;
-			var sumSquares = _.reduce(top10, function(total, item){
+			var mean = (_.sum(top10, propertyPath) + rollup.value)  / (top10.length + 1);
+			var rollupVariance = rollup.value - mean;
+			var rollupVarianceSq = rollupVariance * rollupVariance;
+			var sumSquares = rollupVarianceSq;
+
+			sumSquares += _.reduce(top10, function(total, item){
 				var variance = _.get(item, propertyPath) - mean;
 				var varianceSq = variance * variance;
 				total += varianceSq;
@@ -657,7 +657,9 @@ var createTop10Insight = function(user, rollup, property, repos){
 			rollup.variance = propertyVariance;
 			rollup.outOf = top10.length;
 			rollup.propertyName = property.slice(-1).concat(property.slice(0, -1)).join('.');
-			rollup.value = _.get(rollup, propertyPath);
+			
+
+			top10.filter
 
 			var top10Index = _.sortedLastIndex(top10, rollup, function(r){
 				return -(_.get(r, propertyPath));
@@ -717,8 +719,13 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				return;
 			}
 
-				var mean = _.sum(bottom10, propertyPath) / bottom10.length;
-				var sumSquares = _.reduce(bottom10, function(total, item){
+				rollup.value = _.get(rollup, propertyPath);
+				var mean = (_.sum(bottom10, propertyPath) + rollup.value)  / (bottom10.length + 1);
+				var rollupVariance = rollup.value - mean;
+				var rollupVarianceSq = rollupVariance * rollupVariance;
+				var sumSquares = rollupVarianceSq;
+
+				sumSquares += _.reduce(bottom10, function(total, item){
 					var variance = _.get(item, propertyPath) - mean;
 					var varianceSq = variance * variance;
 					total += varianceSq;
@@ -727,6 +734,7 @@ var createBottom10Insight = function(user, rollup, property, repos){
 					}
 					return total;
 				}, 0);
+
 
 				var variance = Math.sqrt(sumSquares);
 				var stdDev = variance / bottom10.length;
@@ -742,7 +750,6 @@ var createBottom10Insight = function(user, rollup, property, repos){
 				rollup.variance = propertyVariance;
 				rollup.outOf = bottom10.length;
 				rollup.propertyName = property.slice(-1).concat(property.slice(0, -1)).join('.');
-				rollup.value = _.get(rollup, propertyPath);
 
 				var bottom10Index = _.sortedLastIndex(bottom10, rollup, function(r){
 					return _.get(r, propertyPath);
