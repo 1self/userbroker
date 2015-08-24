@@ -144,6 +144,7 @@ var processEvent = function(streamEvent, user, repos){
 	condition.objectTags = condition.objectTags.map(function(tag){return tag.toLowerCase();});
 	condition.actionTags = _.sortBy(streamEvent.actionTags, function(tag){return tag.toLowerCase();});
 	condition.actionTags = condition.actionTags.map(function(tag){return tag.toLowerCase();});
+	var conditionKey = [condition.userId + '', condition.objectTags.join(','), condition.actionTags.join(',')].join('/');
 
 	if(_.indexOf(condition.objectTags, 'sync') >= 0){
 		logger.debug(user.username, "ignoring sync event");
@@ -318,6 +319,7 @@ var processEvent = function(streamEvent, user, repos){
 
 	_.forEach(operations, function(operation, date){
 		condition.date = date;
+		condition.key = [conditionKey, date].join('/');
 		logger.silly('calling insert');
 		logger.silly('condition', JSON.stringify(condition));
 		logger.silly('operation', JSON.stringify(operation));
