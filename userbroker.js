@@ -3,6 +3,7 @@
 var appBroker = require('./appBroker');
 var userDailyAggregation = require('./userDailyAggregation');
 var eventReplayer = require('./eventReplayer');
+var bulletin = require('./bulletin');
 var winston = require('winston');
 var _ = require('lodash');
 var path = require('path');
@@ -176,7 +177,11 @@ var subscribeMessage = function(channel, message){
 	}
 	else if(channel === 'userbroker'){
 		logger.info(channel, "recognised");
-		if(message === 'cron/daily'){
+		if(message === 'bulletin'){
+			logger.info(message, 'asking processor to send bulletin to users');
+			bulletin.send(repos, users);
+		}
+		else if(message === 'cron/daily'){
 			logger.info(message, 'asking processor to send users events to apps');
 			_.forEach(eventModules, cronDailyYesterday);
 		}
@@ -471,6 +476,10 @@ var setUserRollupRepo = function(userRollupRepo){
 	repos.userRollupByDay = userRollupRepo;
 };
 
+var setBulletinRepo = function(bulletinRepo){
+	repos.bulletin = bulletinRepo;
+}
+
 var setAppBrokerRepo = function(appBrokerRepo){
 	repos.appBroker = appBrokerRepo;
 };
@@ -493,6 +502,7 @@ module.exports.loadUsers = loadUsers;
 module.exports.setLogger = setLogger;
 module.exports.setUserRepo = setUserRepo;
 module.exports.setUserRollupRepo = setUserRollupRepo;
+module.exports.setBulletinRepo = setBulletinRepo;
 module.exports.setAppBrokerRepo = setAppBrokerRepo;
 module.exports.setEventRepo = setEventRepo;
 module.exports.setCardsRepo = setCardsRepo;

@@ -53,55 +53,55 @@ var setLogger = function (newLogger){
 	logger = Object.create(newLogger);
 	logger.info = function(key, message, data){
 		if(data !== undefined && data !== null){
-			newLogger.info('userDailyAggregation: ' + key + ': ' + message, data);
+			newLogger.info('userDailyAggregation: %s: %s', 	key, message, data);
 		} 
 		else {
-			newLogger.info('userDailyAggregation: ' + key + ': ' + message);
+			newLogger.info('userDailyAggregation: %s: %s', key, message);
 		}
 	};
 
 	logger.verbose = function(key, message, data){
 		if(data !== undefined && data !== null){
-			newLogger.verbose('userDailyAggregation: ' + key + ': ' + message, data);
+			newLogger.verbose('userDailyAggregation: %s: %s', key, message, data);
 		}
 		else{
-			newLogger.verbose('userDailyAggregation: ' + key + ': ' + message);
+			newLogger.verbose('userDailyAggregation: %s: %s', key, message);
 		}
 	};
 
 	logger.warn = function(key, message, data){
 		if(data !== undefined && data !== null){
-			newLogger.warn('userDailyAggregation: ' + key + ': ' + message, data);
+			newLogger.warn('userDailyAggregation: %s: %s', key, message, data);
 		} 
 		else {
-			newLogger.warn('userDailyAggregation: ' + key + ': ' + message);
+			newLogger.warn('userDailyAggregation: %s: %s', key, message);
 		}
 	};
 	
 	logger.error = function(key, message, data){
 		if(data !== undefined && data !== null){
-			newLogger.error('userDailyAggregation: ' + key + ': ' + message, data);
+			newLogger.error('userDailyAggregation: %s: %s', key, message, data);
 		}
 		else{
-			newLogger.error('userDailyAggregation: ' + key + ': ' + message);
+			newLogger.error('userDailyAggregation: %s: %s', key, message);
 		}
 	};
 	
 	logger.debug = function(key, message, data){
 		if(data !== undefined && data !== null){
-			newLogger.debug('userDailyAggregation: ' + key + ': ' + message, data);
+			newLogger.debug('userDailyAggregation: %s: %s', key, message, data);
 		}
 		else{
-			newLogger.debug('userDailyAggregation: ' + key + ': ' + message);
+			newLogger.debug('userDailyAggregation: %s: %s', key, message);
 		}
 	};
 
 	logger.silly = function(key, message, data){
 		if(data !== undefined && data !== null){
-			newLogger.silly('userDailyAggregation: ' + key + ': ' + message, data);
+			newLogger.silly('userDailyAggregation: %s: %s', key, message, data);
 		}
 		else{
-			newLogger.silly('userDailyAggregation: ' + key + ': ' + message);
+			newLogger.silly('userDailyAggregation: %s: %s', key, message);
 		}
 	};
 
@@ -782,15 +782,79 @@ var createDailyInsightCards = function(user, repos, params){
 	logger.	info(user.username, ['cron/daily', params.date , 'creating'].join(': '));
 	logger.debug(user.username, 'params passed in are ', params);
 
+	var getLastReadDate = function(params){
+// 		db.getCollection('cards').aggregate([
+// { $match: { userId: ObjectId("53c3ac9438a61a0200fabe16")}}
+// , { $match: {read: true }}
+// , { $group: {_id: 0, maxDate: {$max: "$cardDate"}  }}
+// ])
+		return q.Promise(function(resolve, reject){
+			var pipeline = [];
+			pipeline.push({
+				$match: {
+					userId: user._id, 
+					read: true, 
+					archive: {$ne: false}
+				}
+			});
+
+			pipeline.push({
+				$group: {
+					_id: 0, 
+					maxDate: {$max: "$cardDate"}
+				}
+			});
+
+			repos.cards.aggregate(pipeline, function(error, result){
+				if(error){
+					reject(error);
+				}
+				else{
+					params.maxDate = result.length > 0 ? result[0].maxDate : null;
+					resolve(params);
+				}
+			})
+		});
+	}
+
+	var archiveOldCards = function(params){
+		return q.Promise(function(resolve, reject){
+			if(params.maxDate === null){
+				resolve(params);
+			}
+
+			var condition = {
+				userId: user._id ,
+				archive: {$ne: true},
+				cardDate: {$lte: params.maxDate}
+			};
+
+			var operation = {
+				$set: {archive: true}
+			};
+
+			var options = {multi: true};
+
+			repos.cards.update(condition, operation, options, function(error, result){
+				if(error){
+					reject(error);
+				}
+				
+				logger.debug([user.username, params.date].join(':'), 'archived old cards', result);
+				resolve(params)
+			})
+		});
+	}
+
 	var createDatabaseQuery = function(queryParams){
-		logger.debug(user.username, "creating database condition, [query params]", queryParams);
+		logger.debug(user.username, 'creating database condition, [query params]', queryParams);
 		var condition = {
 			userId: user._id
 		};
 
 		if(queryParams.objectTags === undefined)
 		{
-			condition.objectTags = {$nin: ["twitter", "foursquare", "hackernews", "stackoverflow", "instagram"]}
+			condition.objectTags = {$nin: ['twitter', 'foursquare', 'hackernews', 'stackoverflow', 'instagram']}
 		}
 		else{
 			condition.objectTags = {$all: queryParams.objectTags};
@@ -855,7 +919,7 @@ var createDailyInsightCards = function(user, repos, params){
 
 		var rollupPromises = [];
 
-		logger.debug(user.username, 'found rollups for yesterday: ', rollups.length);
+		logger.debug(user.username, [params.date, 'found rollups'].join(':'), [params.date, rollups.length]);
 		for(var i = 0; i < rollups.length; i++){
 			logger.debug(user.username, 'creating insights for actionTags, objectTags, sum:', [rollups.actionTags, rollups.objectTags, rollups.sum]);
 			var rollup = rollups[i];
@@ -871,7 +935,9 @@ var createDailyInsightCards = function(user, repos, params){
 		logger.info(user.username, finishMessage);
 	};
 
-	q.fcall(createDatabaseQuery, params)
+	getLastReadDate(params)
+	.then(archiveOldCards)
+	.then(createDatabaseQuery)
 	.then(getRollupsFromDatabase)
 	.then(generateInsightsFromRollups)
 	.then(logFinished)
