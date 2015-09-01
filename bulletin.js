@@ -82,7 +82,8 @@ var getTheLastBulletinDate = function(repos, user){
 				lastDate: {$max: '$date'}
 			}
 		});
-
+		
+		logger.debug(user.username, 'getting the last bulletin: ', pipeline);
 		repos.bulletin.aggregate(pipeline, function(error, response){
 			if(error){
 				reject(error);
@@ -92,6 +93,7 @@ var getTheLastBulletinDate = function(repos, user){
 				params.repos = repos;
 				params.user = user;
 				params.lastBulletin = response[0] !== undefined ? response[0].lastDate : null;
+				logger.debug(user.username, 'lastBulletin was: ', params.lastBulletin);
 				resolve(params);
 			}
 		});
@@ -163,10 +165,6 @@ var getFastestFingersDayForBulletin = function(params){
 					params.highestSoftwareDevelopSinceLastBulletin.value = response[0].sum.duration;
 					params.highestSoftwareDevelopSinceLastBulletin.date = response[0].date;
 				} 
-				else{
-					params.highestSoftwareDevelopSinceLastBulletin.value = params.highestSoftwareDevelop.value;
-					params.highestSoftwareDevelopSinceLastBulletin.date = params.highestSoftwareDevelop.date;
-				}
 
 				resolve(params);
 			}

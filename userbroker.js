@@ -98,6 +98,7 @@ var setLogger = function(l){
 	});
 
 	eventReplayer.setLogger(l);
+	bulletin.setLogger(l);
 };
 
 setLogger(winston);
