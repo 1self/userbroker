@@ -182,6 +182,7 @@ var createBulletin = function(params){
 		var doc = {
 			userId: params.user._id,
 			date: moment().toISOString().substring(0,10),
+			generatedDate: moment().toISOString(),
 			highestSoftwareDevelop: params.highestSoftwareDevelop,
 			highestSoftwareDevelopSinceLastBulletin: params.highestSoftwareDevelopSinceLastBulletin
 		};
@@ -203,10 +204,6 @@ var send = function(repos, users){
 	// for an explanation of why I add Z to the date.
 
 	_.forEach(users, function(user){	
-		if(user.username !== 'ed' ){
-			return;
-		}
-
 		getTheLastBulletinDate(repos, user)
 		.then(getAllTimeHighestSoftwareDevelop)
 		.then(getFastestFingersDayForBulletin)

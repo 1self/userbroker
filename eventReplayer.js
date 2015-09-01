@@ -94,6 +94,8 @@ var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink
 		query["payload.actionTags"] = {$all: actionTags};
 	}
 
+	eventSink('eventReplayer/start');
+
 	repos.eventRepo.find(query).each(function(err, doc){
 		if(err){
 			logger.error(user, 'error retrieving events', err);
@@ -104,6 +106,7 @@ var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink
 			eventSink(doc.payload);
 		}
 		else if(doc == null){
+			eventSink('eventReplayer/finished');
 			logger.info(user.username, 'finished playing back events');
 		}
 	})
