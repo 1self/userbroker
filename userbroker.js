@@ -180,7 +180,11 @@ var subscribeMessage = function(channel, message){
 		logger.info(channel, "recognised");
 		if(message === 'bulletin'){
 			logger.info(message, 'asking processor to send bulletin to users');
-			bulletin.send(repos, users);
+			bulletin.send(users, repos);
+		}
+		if(message === 'archive'){
+			logger.info(message, 'requesting archive');
+			userDailyAggregation.archive(users, repos);
 		}
 		else if(message === 'cron/daily'){
 			logger.info(message, 'asking processor to send users events to apps');

@@ -811,6 +811,7 @@ var createDailyInsightCards = function(user, repos, params){
 				}
 				else{
 					params.maxDate = result.length > 0 ? result[0].maxDate : null;
+					logger.debug()
 					resolve(params);
 				}
 			})
@@ -947,6 +948,95 @@ var createDailyInsightCards = function(user, repos, params){
 	.done();
 };
 
+var archiveUser = function(user, repos){
+	var getLastReadDate = function(params){
+		return q.Promise(function(resolve, reject){
+			var pipeline = [];
+			pipeline.push({
+				$match: {
+					userId: user._id, 
+					read: true, 
+					archive: {$ne: false}
+				}
+			});
+
+			pipeline.push({
+				$group: {
+					_id: 0, 
+					maxDate: {$max: "$cardDate"}
+				}
+			});
+
+			logger.debug(user.username, 'getting the last read date, pipeline', pipeline);
+			repos.cards.aggregate(pipeline, function(error, result){
+				if(error){
+					reject(error);
+				}
+				else{
+					params.maxDate = result.length > 0 ? result[0].maxDate : null;
+					logger.debug(user.username, 'archiving, max date is ', params.maxDate);
+					resolve(params);
+				}
+			})
+		});
+	}
+
+	var archiveOldCards = function(params){
+		return q.Promise(function(resolve, reject){
+			if(params.maxDate === null){
+				resolve(params);
+			}
+
+			var condition = {
+				userId: user._id ,
+				archive: {$ne: true},
+				cardDate: {$lte: params.maxDate}
+			};
+
+			var operation = {
+				$set: {archive: true}
+			};
+
+			var options = {multi: true};
+
+			logger.debug(user.username, 'archive: updating cards, [condition, operation]', [condition, operation]);
+			repos.cards.update(condition, operation, options, function(error, response){
+				if(error){
+					reject(error);
+				}
+				else{
+					logger.debug(user.username, 'archived old cards', response.result	);
+					resolve(params)
+				}
+			})
+		});
+	}
+
+	var params = {
+		repos: repos,
+		user: user
+	};
+
+	getLastReadDate(params)
+	.then(archiveOldCards)
+	.catch(function(error){
+		logger.error(user.username, 'error occurred while generating insight', error);
+	})
+	.done();
+}
+
+var archive = function(users, repos){
+	_.map(users, function(user){
+		var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
+		if(_.sortedIndex(whitelist, user.username, true) === -1){
+			logger.verbose(user.username, 'not on the whitelist, archive not running');
+			return;
+		}
+
+		archiveUser(user, repos);
+	});
+}
+
 var cronDaily = function(users, repos, params){
 	_.map(users, function(user){
 		var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
@@ -964,3 +1054,4 @@ module.exports.processEvent = processEvent;
 module.exports.cronDaily = cronDaily;
 module.exports.reverseSortedIndexLodash = reverseSortedIndexLodash;
 module.exports.reverseSortedIndex = reverseSortedIndex;
+module.exports.archive = archive;
