@@ -68,48 +68,53 @@ var setLogger = function (newLogger){
 };
 
 var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink){
-	logger.info(user.username, 'replaying events ', date);
-	// eas: see http://edsykes.blogspot.com/2015/07/a-text-only-trick-for-retrieving-day.html 
-	// for an explanation of why I add Z to the date.
-	if(user.streams === undefined){
-		logger.info(user.username, 'no streams');
-		return;
-	}
-
-	var query = {
-	 	"payload.streamid": {
-	 		$in: user.streams.map(function(stream){return stream.streamid;})
-	 	},
-	 	"payload.dateTime": {
-	 		$gte: date, 
-	 		$lte: date + 'Z'
-	 	}
-	}
-
-	if(objectTags.length > 0){
-		query["payload.objectTags"] = {$all: objectTags};
-	}
-
-	if(actionTags.length > 0){
-		query["payload.actionTags"] = {$all: actionTags};
-	}
-
-	eventSink('eventReplayer/start');
-
-	repos.eventRepo.find(query).each(function(err, doc){
-		if(err){
-			logger.error(user, 'error retrieving events', err);
+	return q.Promise(function(resolve, reject){
+		logger.info(user.username, 'replaying events ', date);
+		// eas: see http://edsykes.blogspot.com/2015/07/a-text-only-trick-for-retrieving-day.html 
+		// for an explanation of why I add Z to the date.
+		if(user.streams === undefined){
+			logger.info(user.username, 'no streams');
+			resolve();
 			return;
 		}
 
-		if(doc){
-			eventSink(doc.payload);
+		var query = {
+		 	"payload.streamid": {
+		 		$in: user.streams.map(function(stream){return stream.streamid;})
+		 	},
+		 	"payload.dateTime": {
+		 		$gte: date, 
+		 		$lte: date + 'Z'
+		 	}
 		}
-		else if(doc == null){
-			eventSink('eventReplayer/finished');
-			logger.info(user.username, 'finished playing back events');
+
+		if(objectTags.length > 0){
+			query["payload.objectTags"] = {$all: objectTags};
 		}
-	})
+
+		if(actionTags.length > 0){
+			query["payload.actionTags"] = {$all: actionTags};
+		}
+
+		eventSink('eventReplayer/start');
+
+		repos.eventRepo.find(query).each(function(err, doc){
+			if(err){
+				logger.error(user, 'error retrieving events', err);
+				reject(err);
+				return;
+			}
+
+			if(doc){
+				eventSink(doc.payload);
+			}
+			else if(doc == null){
+				eventSink('eventReplayer/finished');
+				resolve();
+				logger.info(user.username, 'finished playing back events');
+			}
+		});
+	});
 };
 
 

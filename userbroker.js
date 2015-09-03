@@ -9,6 +9,7 @@ var _ = require('lodash');
 var path = require('path');
 var assert = require('assert');
 var moment = require('moment');
+var q = require('q');
 require('twix'); // moment plugin
 
 winston.level = 'info';
@@ -306,6 +307,40 @@ var subscribeMessage = function(channel, message){
 			_.forEach(eventModules, function(module){
 				module.cronDaily([lookedUpUser], repos, params);
 			});	
+		}
+		else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
+			var matches = /^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
+
+			var date = matches[1];
+			logger.info(date, 'initiating event replay', {date: date});
+
+			var eventSink = function(event){
+				messagePublisher('events', JSON.stringify(event));
+			}
+
+			var promises = [];
+			_.forEach(users, function(user){
+				promises.push(function(){
+					return eventReplayer.replayEvents(repos, user, date, [], [], eventSink)
+				});
+			});
+			
+			promises.push(function(){
+				return q.Promise(function(){
+					logger.info(date, 'event replay finished');
+				});
+			});
+
+			//var promiseSequence = promises.reduce(q.when, q());
+			var result = q();
+			promises.forEach(function (f) {
+			    result = result.then(f);
+			});
+			
+			result.catch(function(error){
+				logger.error(error);
+			})
+			.done();
 		}
 		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.test(message)){
 			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.exec(message);
