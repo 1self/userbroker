@@ -16,6 +16,8 @@ var reverseSortedIndexLodash = function(array, value, predicate){
 	return _.sortedIndex(array, value, predicate);
 };
 
+var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
+
 var reverseSortedIndex = function(array, value, predicate){
 	var result = -1;
 
@@ -108,8 +110,6 @@ var setLogger = function (newLogger){
 };
 
 var processEvent = function(streamEvent, user, repos){
-	var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
-
 	if(_.indexOf(whitelist, user.username, true) === -1){
 		logger.verbose(user.username, 'not on the whitelist, message not processed');
 		return;
@@ -1027,7 +1027,7 @@ var archiveUser = function(user, repos){
 
 var archive = function(users, repos){
 	_.map(users, function(user){
-		var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
+		
 		if(_.sortedIndex(whitelist, user.username, true) === -1){
 			logger.verbose(user.username, 'not on the whitelist, archive not running');
 			return;
@@ -1039,7 +1039,6 @@ var archive = function(users, repos){
 
 var cronDaily = function(users, repos, params){
 	_.map(users, function(user){
-		var whitelist = ["0","1me","anildigital","anti","awjudd","bensterling","bretsky","carebozaru","cemueses","chad_","chinmay185","chris1self","chriscobb","chrisyoong1self","creativeboulder","crochi","dantashman","dermy","devaroop","devika","doug","drazzie","dsitter","ed","edf","ehrenglaube","erbridge","ernestasju","fbtest","fonzzo@gmail.com","futoricky","handelxh","haroen","in8finity","jackmac92","jankal","jonah","komlev","laamanni","m","markpjohnson","martin","mbriscoe88","mick","mjstephenson","mobilpadde","nadyja","nblackburn","nfrigus","not-inept","osiloke","paulll","phil65","pj","psycrow","r1ffa","ranndom","rpowis","schisma","scottmuc","shaunstanislaus","shot5dev","singyouranthem","skinn","stamp","stormfighter","tekir","testuser","themaaarc","thenorthman","tomwrenn","toxel","vinaypuppal","willmedeiros","ybl"];
 		if(_.sortedIndex(whitelist, user.username, true) === -1){
 			logger.verbose(user.username, 'not on the whitelist, cron not running');
 			return;
