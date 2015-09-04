@@ -946,7 +946,7 @@ var createDailyInsightCards = function(user, repos, params){
 					reject(error);
 				}
 				else{
-					var count = response[0].count;
+					var count = response[0] ? response[0].count : 0;
 					logger.debug(user.username, 'number of cards: ', count);
 					resolve(count);
 				}
