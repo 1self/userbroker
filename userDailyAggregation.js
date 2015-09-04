@@ -931,6 +931,56 @@ var createDailyInsightCards = function(user, repos, params){
 		return q.all(rollupPromises);
 	};
 
+	var getCardCount = function(){
+		return q.Promise(function(resolve, reject){
+			var pipeline = [];
+			pipeline.push({
+				$match: {userId: user._id}
+			});
+
+			pipeline.push({ $group: { _id: null, count: { $sum: 1 } } })
+
+			repos.cards.aggregate(pipeline, function(error, response){
+				if(error){
+					logger.debug(user.username, 'error getting card count', error);
+					reject(error);
+				}
+				else{
+					var count = response[0].count;
+					logger.debug(user.username, 'number of cards: ', count);
+					resolve(count);
+				}
+			});
+		});
+	}
+
+	var setUserCardCount = function(cardCount){
+		return q.Promise(function(resolve, reject){
+			var condition = {
+				_id: user._id
+			};
+
+			var operation = {
+				$set: {cardCount: cardCount}
+			};
+
+			var options = {
+				$multi: false
+			}
+
+			repos.user.update(condition, operation, options, function(error, response){
+				if(error){
+					logger.debug(user.username, 'error setting card count on user', error);
+					reject(error);
+				} 
+				else {
+					logger.debug(user.username, 'card count was set on user', response.result);
+					resolve(response);
+				}
+			});
+		});
+	}
+
 	var finishMessage = ['cron/daily', params.date, 'finished creating insights'].join(": ");
 	var logFinished = function(){
 		logger.info(user.username, finishMessage);
@@ -941,6 +991,8 @@ var createDailyInsightCards = function(user, repos, params){
 	.then(createDatabaseQuery)
 	.then(getRollupsFromDatabase)
 	.then(generateInsightsFromRollups)
+	.then(getCardCount)
+	.then(setUserCardCount)
 	.then(logFinished)
 	.catch(function(error){
 		logger.error(user.username, 'error occurred while generating insight', error);
