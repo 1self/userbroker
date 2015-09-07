@@ -308,6 +308,41 @@ var subscribeMessage = function(channel, message){
 				module.cronDaily([lookedUpUser], repos, params);
 			});	
 		}
+		else if(/^cards\/recreate\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+			// date range, object tags, action tags
+			var matches = /^cards\/recreate\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+			var fromDate = matches[1];
+			var toDate = matches[2];
+
+			logger.info('', 'initiating card recreation', matches);
+			
+			var params = {
+					objectTags: matches[3].split(","),
+					actionTags: matches[4].split(","),
+					from: fromDate,
+					to: toDate
+			};
+
+			
+			var userRecreates = _.map(users, function(user){
+				return function(){
+					logger.info(user.username, 'requesting card/recreate, params', params);
+				    return userDailyAggregation.recreateCardsForTagsAndDateRange(user, repos, params);
+				};
+			});
+
+			var promise = q();
+			userRecreates.forEach(function (f) {
+			    promise = promise.then(f);
+			});
+			
+			promise.catch(function(error){
+				logger.error(error);
+			})
+			.done();
+
+
+		} 
 		else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
 			var matches = /^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
 

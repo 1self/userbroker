@@ -783,11 +783,6 @@ var createDailyInsightCards = function(user, repos, params){
 	logger.debug(user.username, 'params passed in are ', params);
 
 	var getLastReadDate = function(params){
-// 		db.getCollection('cards').aggregate([
-// { $match: { userId: ObjectId("53c3ac9438a61a0200fabe16")}}
-// , { $match: {read: true }}
-// , { $group: {_id: 0, maxDate: {$max: "$cardDate"}  }}
-// ])
 		return q.Promise(function(resolve, reject){
 			var pipeline = [];
 			pipeline.push({
@@ -807,11 +802,12 @@ var createDailyInsightCards = function(user, repos, params){
 
 			repos.cards.aggregate(pipeline, function(error, result){
 				if(error){
+					logger.debug(user.username, 'error occurred while getting last read date, error', error)
 					reject(error);
 				}
 				else{
 					params.maxDate = result.length > 0 ? result[0].maxDate : null;
-					logger.debug()
+					logger.debug(user.username, 'max date is', params.maxDate);
 					resolve(params);
 				}
 			})
@@ -836,12 +832,12 @@ var createDailyInsightCards = function(user, repos, params){
 
 			var options = {multi: true};
 
-			repos.cards.update(condition, operation, options, function(error, result){
+			repos.cards.update(condition, operation, options, function(error, response){
 				if(error){
 					reject(error);
 				}
 				
-				logger.debug([user.username, params.date].join(':'), 'archived old cards', result);
+				logger.debug([user.username, params.date].join(': '), 'archived old cards', response.result.n);
 				resolve(params)
 			})
 		});
@@ -882,7 +878,7 @@ var createDailyInsightCards = function(user, repos, params){
 	// to save space in the database.
 	var getRollupsFromDatabase = function(condition){
 		return q.Promise(function(resolve, reject){
-			logger.debug(user.username, 'getting rollups from database, [condition]', condition);
+			logger.debug(user.username, 'getting rollups from database, [condition]', JSON.stringify(condition));
 			repos.userRollupByDay.find(condition).toArray(function(error, rollupsForDates){
 				if(error){
 					reject("error getting rollups from the database for " + user.username);
@@ -986,7 +982,7 @@ var createDailyInsightCards = function(user, repos, params){
 		logger.info(user.username, finishMessage);
 	};
 
-	getLastReadDate(params)
+	return getLastReadDate(params)
 	.then(archiveOldCards)
 	.then(createDatabaseQuery)
 	.then(getRollupsFromDatabase)
@@ -996,8 +992,7 @@ var createDailyInsightCards = function(user, repos, params){
 	.then(logFinished)
 	.catch(function(error){
 		logger.error(user.username, 'error occurred while generating insight', error);
-	})
-	.done();
+	});
 };
 
 var archiveUser = function(user, repos){
@@ -1099,6 +1094,98 @@ var cronDaily = function(users, repos, params){
 	});
 };
 
+var groundsForRejection = function(user, repos, params){
+	var result = [];
+	if(user === undefined){
+		result.push('user is undefined');
+	}
+
+	if(repos === undefined){
+		result.push('repos is not defined');
+	}
+
+	if(params.objectTags === undefined){
+		result.push('object tags are not defined');
+	}
+
+	if(params.actionTags === undefined){
+		result.push('action tags are not defined');
+	}
+
+	if(params.from === undefined){
+		result.push('from date is not defined');
+	}
+
+	if(params.to === undefined){
+		result.push('to date is not defined');
+	}
+
+	return result;
+}
+
+var removeExistingCards = function(user, repos, params){
+	return q.Promise(function(resolve, reject){
+		var condition = {
+			userId: user._id,
+			cardDate: {
+				$gt: params.from,
+				$lt: params.to + 'Z'
+			},
+			objectTags: {$all: params.objectTags},
+			actionTags: {$all: params.actionTags}
+		};
+
+		repos.cards.remove(condition, function(error, response){
+			if(error){
+				reject(error);
+			}
+			else{
+				logger.info(user.username, 'removed cards, count', response.result.n);
+				resolve();
+			}
+		});
+	});
+}
+
+var recreateCardsForTagsAndDateRange = function(user, repos, params){
+	return q.Promise(function(resolve, reject){
+
+		var grounds = groundsForRejection(user, repos, params);
+		if(grounds.length > 0){
+			reject(grounds.join(','));
+			return;
+		}
+
+		logger.info(user.username, 'starting card recreation, params', params);
+		logger.debug(user.username, 'creating date range');
+		var dateRange = moment(params.from).twix(params.to, {allDay: true});
+		logger.debug(user.username, 'creating date array');
+		var iter = dateRange.iterate("days");
+		logger.debug(user.username, 'created date array');
+		var dateParams = [];
+		while(iter.hasNext()){
+			dateParams.push({
+				objectTags: params.objectTags,
+				actionTags: params.actionTags,
+				date: iter.next().toISOString().substring(0,10)
+			});
+		}
+
+		var promise = removeExistingCards(user, repos, params);
+		
+		dateParams.forEach(function(dateParam){
+			promise = promise.then(function(){
+				return createDailyInsightCards(user, repos, dateParam);
+			});
+		});
+
+		promise.then(function(){
+			logger.debug(user.username, 'finished recreating cards, params', params);
+			resolve();
+		});
+	})
+}
+
 module.exports = {};
 module.exports.setLogger = setLogger;
 module.exports.processEvent = processEvent;
@@ -1106,3 +1193,4 @@ module.exports.cronDaily = cronDaily;
 module.exports.reverseSortedIndexLodash = reverseSortedIndexLodash;
 module.exports.reverseSortedIndex = reverseSortedIndex;
 module.exports.archive = archive;
+module.exports.recreateCardsForTagsAndDateRange = recreateCardsForTagsAndDateRange;
