@@ -2,6 +2,7 @@
  
 var appBroker = require('./appBroker');
 var userDailyAggregation = require('./userDailyAggregation');
+var cardSchedule = require('./cardSchedule');
 var eventReplayer = require('./eventReplayer');
 var bulletin = require('./bulletin');
 var winston = require('winston');
@@ -43,6 +44,7 @@ var streamsToUsers = {};
 var eventModules = [];
 //eventModules.push(appBroker);
 eventModules.push(userDailyAggregation);
+eventModules.push(cardSchedule);
 
 var logger = {};
 
@@ -547,6 +549,10 @@ var setCardsRepo = function(repo){
 	repos.cards = repo;
 };
 
+var setCardScheduleRepo = function(repo){
+	repos.cardSchedule = repo;
+}
+
 var setUserRollupRepo = function(userRollupRepo){
 	repos.userRollupByDay = userRollupRepo;
 };
@@ -581,5 +587,6 @@ module.exports.setBulletinRepo = setBulletinRepo;
 module.exports.setAppBrokerRepo = setAppBrokerRepo;
 module.exports.setEventRepo = setEventRepo;
 module.exports.setCardsRepo = setCardsRepo;
+module.exports.setCardScheduleRepo = setCardScheduleRepo;
 module.exports.setIdGenerator = setIdGenerator;
 module.exports.setMessagePublisher = setMessagePublisher;	
