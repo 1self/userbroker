@@ -68,7 +68,8 @@ var processEvent = function(streamEvent, user, repos){
 
 	var condition = {
 		userId: user._id,
-		date: streamEvent.dateTime.substring(0, 10)
+		date: streamEvent.dateTime.substring(0, 10),
+		streamid: streamEvent.streamid
 	}
 
 	var objectTags = _(streamEvent.objectTags)
@@ -79,7 +80,7 @@ var processEvent = function(streamEvent, user, repos){
 					.map(function(tag){return tag.toLowerCase();})
 					.sortBy(function(tag){return tag.toLowerCase();})
 					.value();
-	var command = 'schedule.' + objectTags.join(',') + '.' + actionTags.join(',');
+	var command = 'tags.' + objectTags.join(',') + '/' + actionTags.join(',');
 
 	var operation = {
 		$set: {
