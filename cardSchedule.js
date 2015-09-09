@@ -79,12 +79,14 @@ var processEvent = function(streamEvent, user, repos){
 					.map(function(tag){return tag.toLowerCase();})
 					.sortBy(function(tag){return tag.toLowerCase();})
 					.value();
-	var command = objectTags.join(',') + '.' + actionTags.join(',');
+	var command = 'schedule.' + objectTags.join(',') + '.' + actionTags.join(',');
 
 	var operation = {
-		$set: {}
+		$set: {
+		}
 	}
 
+	logger.debug(user.username, 'adding card schedule ', [command, condition.date]);
 	operation.$set[command] = true;
 
 	repos.cardSchedule.update(condition, operation, {upsert: true});
