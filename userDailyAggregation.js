@@ -109,6 +109,11 @@ var setLogger = function (newLogger){
 
 };
 
+var yesterday = function(){
+	var yesterday = moment().subtract(1, 'days');
+	return yesterday.format("YYYY-MM-DD");
+};
+
 var processSyncEvent = function(streamEvent, user, repos){
 	if(_.indexOf(streamEvent.objectTags, 'sync') === -1){
 		return;
@@ -120,7 +125,8 @@ var processSyncEvent = function(streamEvent, user, repos){
 
 	var condition = {
 		userId: user._id,
-		streamid: streamEvent.streamid
+		streamid: streamEvent.streamid,
+		date: {$lt: yesterday()}
 	};
 
 	var promise = q();
@@ -163,8 +169,6 @@ var processSyncEvent = function(streamEvent, user, repos){
 			});
 		});
 	});
-
-	
 }
 
 var processEvent = function(streamEvent, user, repos){
