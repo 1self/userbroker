@@ -1,6 +1,4 @@
 'use strict';
-var _ = require('lodash');
-var moment = require('moment');
 var q = require('q');
 var logger = require('winston');
 
@@ -86,7 +84,7 @@ var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink
 		 		$gte: date, 
 		 		$lte: date + 'Z'
 		 	}
-		}
+		};
 
 		if(objectTags.length > 0){
 			query["payload.objectTags"] = {$all: objectTags};

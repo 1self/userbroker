@@ -1,8 +1,8 @@
 'use strict';
  
-var appBroker = require('./appBroker');
 var userDailyAggregation = require('./userDailyAggregation');
 var cardSchedule = require('./cardSchedule');
+var cards = require('./cards');
 var eventReplayer = require('./eventReplayer');
 var bulletin = require('./bulletin');
 var winston = require('winston');
@@ -45,6 +45,7 @@ var eventModules = [];
 //eventModules.push(appBroker);
 eventModules.push(userDailyAggregation);
 eventModules.push(cardSchedule);
+eventModules.push(cards);
 
 var logger = {};
 
@@ -116,7 +117,7 @@ var cacheUser = function(user){
 };
 
 // eas: on any user event we reload the whole user
-var processUserEvent = function(userEvent, userRepository){
+var processStreamAdd = function(userEvent, userRepository){
 	logger.info(userEvent.username, 'loading user into cache', userEvent.username);
 	var condition = {
 		username: userEvent.username
@@ -153,72 +154,146 @@ var cronDailyYesterday = function(module){
 	var yesterday = moment().subtract(1, 'days');
 	var params = {
 		date: yesterday.format("YYYY-MM-DD")
-	}
+	};
 
 	module.cronDaily(users, repos, params);
 };
 
-var subscribeMessage = function(channel, message){
-	logger.info(channel, message);
-	if(channel === 'events'){
-		var event = JSON.parse(message);
-		var userForStream = streamsToUsers[event.streamid];
-		if(userForStream === undefined){
-			logger.debug(event.streamid, 'stream doesnt have a user: event, event.streamsToUsers', [event, event.streamsToUsers]);
+var processEventsChannel = function(message){
+	var event = JSON.parse(message);
+	var userForStream = streamsToUsers[event.streamid];
+	if(userForStream === undefined){
+		logger.debug(event.streamid, 'stream doesnt have a user: event, event.streamsToUsers', [event, event.streamsToUsers]);
+		return;
+	}	
+
+	for (var i = 0; i < eventModules.length; i++) {
+		logger.silly(event.streamid, 'calling <proce></proce>ss event');
+		eventModules[i].processEvent(event, userForStream, repos);
+	}
+};
+
+var processUserAdded = function(userEvent, userRepo){
+	logger.info(userEvent.username, 'adding user', userEvent.username);
+
+	// first put enough into the user collection that a stream added message can link the
+	// two together.
+	var newUser = {
+		_id: userEvent._id,
+		username: userEvent.username
+	}
+
+	users[userEvent.username] = newUser;
+
+	var condition = {
+		username: userEvent.username
+	};
+
+	// Now go and get the whole of the user from the repo
+	userRepo.findOne(condition, function(error, user){
+		if(error){
+			logger.error(userEvent.username, 'error while retrieving user', error);
 			return;
-		}	
-
-		for (var i = 0; i < eventModules.length; i++) {
-			logger.silly(event.streamid, 'calling <proce></proce>ss event');
-			eventModules[i].processEvent(event, userForStream, repos);
 		}
+
+		if(user.username === undefined){
+			logger.warn(userEvent.username, 'user found without a conforming schema, useranme missing: user: ', user);
+			return;
+		}
+
+		cacheUser(user);
+		logger.debug(userEvent.username, 'loaded user from database:', user);
+	});
+	
+	logger.info(userEvent.username, 'processed a user event', userEvent);
+}
+
+var processUsersChannel = function(message){
+	var userMessage = JSON.parse(message);
+
+	if(userMessage.type === 'added'){
+		processUserAdded(userMessage, repos.user)
+	} else {
+		processStreamAdd(userMessage, repos.user);
 	}
-	// users/ed/objecttags/a,b,c/actiontags/a,b,c/date/2015-07-01/
-	// users/
-	else if(channel === 'users'){
-		var userMessage = JSON.parse(message);
-		processUserEvent(userMessage, repos.user);
-	}
-	else if(channel === 'userbroker'){
-		logger.info(channel, "recognised");
-		if(message === 'bulletin'){
-			logger.info(message, 'asking processor to send bulletin to users');
-			bulletin.send(users, repos);
-		}
-		if(message === 'archive'){
-			logger.info(message, 'requesting archive');
-			userDailyAggregation.archive(users, repos);
-		}
-		else if(message === 'cron/daily'){
-			logger.info(message, 'asking processor to send users events to apps');
-			_.forEach(eventModules, cronDailyYesterday);
-		}
-		else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
-			// date range, object tags, action tags
-			var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
-			var cronDailyUser = matches[1];
+};
 
-			var lookedUpUser = users[cronDailyUser];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate unknown user for cron daily', matches);
-				return;
-			}
+var processUserBrokerChannel = function(message){
+	var processCronDailyMessageForDateAndTags = function(){
+		// date range, object tags, action tags
+		var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+		var cronDailyUser = matches[1];
 
-			var fromDate = matches[2];
-			var toDate = matches[3];
+		var lookedUpUser = users[cronDailyUser];
+		if(lookedUpUser === undefined){
+			logger.info(cronDailyUser, 'cant initiate unknown user for cron daily', matches);
+			return;
+		}
 
-			logger.info(cronDailyUser, 'initiating cron daily', matches);
-			logger.debug(cronDailyUser, 'creating date range');
-			var dateRange = moment(fromDate).twix(toDate, {allDay: true});
-			logger.debug(cronDailyUser, 'creating date array');
-			var iter = dateRange.iterate("days");
-			logger.debug(cronDailyUser, 'created date array');
-			
-			var cronDaily = function(){
-				var params = {
-					objectTags: matches[4].split(","),
-					actionTags: matches[5].split(",")
-				}
+		var fromDate = matches[2];
+		var toDate = matches[3];
+
+		logger.info(cronDailyUser, 'initiating cron daily', matches);
+		logger.debug(cronDailyUser, 'creating date range');
+		logger.debug(cronDailyUser, 'creating date array');
+		
+		var cronDaily = function(){
+			var params = {
+				objectTags: matches[4].split(","),
+				actionTags: matches[5].split(",")
+			};
+			var nextDate = iter.next();
+			var formattedDate = nextDate.format('YYYY-MM-DD');
+			params.date = formattedDate;
+
+			logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
+			_.forEach(eventModules, function(module){
+				module.cronDaily([lookedUpUser], repos, params);
+			});	
+		};
+		
+		var iter = moment(fromDate).twix(toDate, {allDay: true}).iterate("days");
+		while(iter.hasNext()){
+			cronDaily();
+		}
+	};
+
+	var processCronDailyMessageForDate = function(){
+		var matches = /^cron\/daily\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
+		var date = matches[1];
+
+		var params = {
+			date: date
+		};
+
+		logger.info('', ['cron/daily', date, 'requesting '].join(': '));
+		_.forEach(eventModules, function(module){
+			module.cronDaily(users, repos, params);
+		});	
+	};
+
+	var processCronDailyMessageForDateRange = function(){
+		var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})$/.exec(message);
+		var cronDailyUser = matches[1];
+
+		var lookedUpUser = users[cronDailyUser];
+		if(lookedUpUser === undefined){
+			logger.info(cronDailyUser, 'cant initiate unknown user for cron daily', matches);
+			return;
+		}
+
+		var fromDate = matches[2];
+		var toDate = matches[3];
+
+		logger.info(cronDailyUser, 'initiating cron daily', matches);
+		logger.debug(cronDailyUser, 'creating date range');
+		var dateRange = moment(fromDate).twix(toDate, {allDay: true});
+		logger.debug(cronDailyUser, 'creating date array');
+		var iter = dateRange.iterate("days");
+		logger.debug(cronDailyUser, 'created date array');
+
+		var callCron = function(){
+				var params = {};
 				var nextDate = iter.next();
 				var formattedDate = nextDate.format('YYYY-MM-DD');
 				params.date = formattedDate;
@@ -228,278 +303,293 @@ var subscribeMessage = function(channel, message){
 					module.cronDaily([lookedUpUser], repos, params);
 				});	
 			};
-			
-			var iter = moment(fromDate).twix(toDate, {allDay: true}).iterate("days");
-			while(iter.hasNext()){
-				cronDaily();
-			}
-		} 
-		else if(/^cron\/daily\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
-			// date range, object tags, action tags
-			var matches = /^cron\/daily\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
-			var date = matches[1];
 
-			var params = {
-				date: date
-			}
+		while(iter.hasNext()){
+			// call cron forces the creation of the params object. Otherwise it will get hoisted and shared
+			// between all of the promises
+			callCron();
+		}
+	};
 
-			logger.info(cronDailyUser, ['cron/daily', date, 'requesting '].join(': '));
-			_.forEach(eventModules, function(module){
-				module.cronDaily(users, repos, params);
-			});	
-		} 
-		else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})$/.test(message)){
-			var matches = /^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})$/.exec(message);
-			var cronDailyUser = matches[1];
-
-			var lookedUpUser = users[cronDailyUser];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate unknown user for cron daily', matches);
-				return;
-			}
-
-			var fromDate = matches[2];
-			var toDate = matches[3];
-
-			logger.info(cronDailyUser, 'initiating cron daily', matches);
-			logger.debug(cronDailyUser, 'creating date range');
-			var dateRange = moment(fromDate).twix(toDate, {allDay: true});
-			logger.debug(cronDailyUser, 'creating date array');
-			var iter = dateRange.iterate("days");
-			logger.debug(cronDailyUser, 'created date array');
-
-			var callCron = function(){
-					var params = {};
-					var nextDate = iter.next();
-					var formattedDate = nextDate.format('YYYY-MM-DD');
-					params.date = formattedDate;
-
-					logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
-					_.forEach(eventModules, function(module){
-						module.cronDaily([lookedUpUser], repos, params);
-					});	
-				}
-
-			while(iter.hasNext()){
-				// call cron forces the creation of the params object. Otherwise it will get hoisted and shared
-				// between all of the promises
-				callCron();
-			}
+	var processCronDailyMessageForUser = function(){
+		var matches = /^cron\/daily\/user\/(.+)$/.exec(message);
+		var cronDailyUser = matches[1];
+		var lookedUpUser = users[cronDailyUser];
+		if(lookedUpUser === undefined){
+			logger.info(cronDailyUser, 'cant initiate unknown user for cron daily', matches);
+			return;
 		}
 
-		else if(/^cron\/daily\/user\/(.+)$/.test(message)){
-			var matches = /^cron\/daily\/user\/(.+)$/.exec(message);
-			var cronDailyUser = matches[1];
-			var lookedUpUser = users[cronDailyUser];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate unknown user for cron daily', matches);
-				return;
-			}
+		var params = {
+		};
 
-			var params = {
-			}
+		var d = new Date();
+		d.setDate(d.getDate() - 1);
+		params.date = d.toISOString().substring(0, 10); 
 
-			var d = new Date();
-			d.setDate(d.getDate() - 1);
-			params.date = d.toISOString().substring(0, 10); 
+		logger.info(cronDailyUser, 'initiating cron daily', matches);
+	
+		logger.info(cronDailyUser, ['cron/daily', 'requesting '].join(': '));
+		_.forEach(eventModules, function(module){
+			module.cronDaily([lookedUpUser], repos, params);
+		});	
+	};
 
-			logger.info(cronDailyUser, 'initiating cron daily', matches);
+	var processMessageForRecreate = function(){
+		// date range, object tags, action tags
+		var matches = /^cards\/recreate\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+		var fromDate = matches[1];
+		var toDate = matches[2];
+
+		logger.info('', 'initiating card recreation', matches);
 		
-			logger.info(cronDailyUser, ['cron/daily', formattedDate, 'requesting '].join(': '));
-			_.forEach(eventModules, function(module){
-				module.cronDaily([lookedUpUser], repos, params);
-			});	
-		}
-		else if(/^cards\/recreate\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
-			// date range, object tags, action tags
-			var matches = /^cards\/recreate\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
-			var fromDate = matches[1];
-			var toDate = matches[2];
+		var params = {
+				objectTags: matches[3].split(","),
+				actionTags: matches[4].split(","),
+				from: fromDate,
+				to: toDate
+		};
 
-			logger.info('', 'initiating card recreation', matches);
-			
-			var params = {
-					objectTags: matches[3].split(","),
-					actionTags: matches[4].split(","),
-					from: fromDate,
-					to: toDate
+		
+		var userRecreates = _.map(users, function(user){
+			return function(){
+				logger.info(user.username, 'requesting card/recreate, params', params);
+			    return cards.recreateCardsForTagsAndDateRange(user, repos, params);
 			};
+		});
 
-			
-			var userRecreates = _.map(users, function(user){
-				return function(){
-					logger.info(user.username, 'requesting card/recreate, params', params);
-				    return userDailyAggregation.recreateCardsForTagsAndDateRange(user, repos, params);
-				};
-			});
+		var promise = q();
+		userRecreates.forEach(function (f) {
+		    promise = promise.then(f);
+		});
+		
+		promise.catch(function(error){
+			logger.error(error);
+		})
+		.done();
+	};
 
-			var promise = q();
-			userRecreates.forEach(function (f) {
-			    promise = promise.then(f);
-			});
-			
-			promise.catch(function(error){
-				logger.error(error);
-			})
-			.done();
+	var processEventReplayForDate = function(){
+		var matches = /^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
 
+		var date = matches[1];
+		logger.info(date, 'initiating event replay', {date: date});
 
-		} 
-		else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
-			var matches = /^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
 
-			var date = matches[1];
-			logger.info(date, 'initiating event replay', {date: date});
-
-			var eventSink = function(event){
-				messagePublisher('events', JSON.stringify(event));
-			}
-
-			var promises = [];
-			_.forEach(users, function(user){
-				promises.push(function(){
-					return eventReplayer.replayEvents(repos, user, date, [], [], eventSink)
-				});
-			});
-			
+		var promises = [];
+		_.forEach(users, function(user){
 			promises.push(function(){
-				return q.Promise(function(){
-					logger.info(date, 'event replay finished');
-				});
+				return eventReplayer.replayEvents(repos, user, date, [], [], eventSink);
 			});
-
-			//var promiseSequence = promises.reduce(q.when, q());
-			var result = q();
-			promises.forEach(function (f) {
-			    result = result.then(f);
+		});
+		
+		promises.push(function(){
+			return q.Promise(function(){
+				logger.info(date, 'event replay finished');
 			});
-			
-			result.catch(function(error){
-				logger.error(error);
-			})
-			.done();
+		});
+
+		//var promiseSequence = promises.reduce(q.when, q());
+		var result = q();
+		promises.forEach(function (f) {
+		    result = result.then(f);
+		});
+		
+		result.catch(function(error){
+			logger.error(error);
+		})
+		.done();
+	};
+
+	var processEventReplayForUserAndYear = function(){
+		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.exec(message);
+		var user = matches[1];
+		var lookedUpUser = users[user];
+		if(lookedUpUser === undefined){
+			logger.info(user, 'cant initiate event replay for unknown user', matches);
+			return;
 		}
-		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.test(message)){
-			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.exec(message);
-			var user = matches[1];
-			var lookedUpUser = users[user];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate event replay for unknown user', matches);
-				return;
-			}
 
-			var date = matches[2];
-			var objectTags = matches[3];
-			var actionTags = matches[4];
-			logger.info(user, 'initiating event replay', {date: date, objectTags: [], actionTags: []});
+		var date = matches[2];
+		logger.info(user, 'initiating event replay', {date: date, objectTags: [], actionTags: []});
 
-			var eventSink = function(event){
-				messagePublisher('events', JSON.stringify(event));
-			}
-			eventReplayer.replayEvents(repos, lookedUpUser, date, [], [], eventSink);
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
+
+		eventReplayer.replayEvents(repos, lookedUpUser, date, [], [], eventSink);
+	};
+
+	var processEventsReplayForUserAndMonth = function(){
+		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})$/.exec(message);
+		var user = matches[1];
+		var lookedUpUser = users[user];
+		if(lookedUpUser === undefined){
+			logger.info(user, 'cant initiate event replay for unknown user', matches);
+			return;
 		}
-		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})$/.test(message)){
-			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})$/.exec(message);
-			var user = matches[1];
-			var lookedUpUser = users[user];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate event replay for unknown user', matches);
-				return;
-			}
 
-			var date = matches[2];
-			var objectTags = matches[3];
-			var actionTags = matches[4];
-			logger.info(user, 'initiating event replay', {date: date, objectTags: [], actionTags: []});
+		var date = matches[2];
+		logger.info(user, 'initiating event replay', {date: date, objectTags: [], actionTags: []});
 
-			var eventSink = function(event){
-				messagePublisher('events', JSON.stringify(event));
-			}
-			eventReplayer.replayEvents(repos, lookedUpUser, date, [], [], eventSink);
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
+
+		eventReplayer.replayEvents(repos, lookedUpUser, date, [], [], eventSink);
+	};
+
+	var processEventsReplayForUserAndDay = function(){
+		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
+		var user = matches[1];
+		var lookedUpUser = users[user];
+		if(lookedUpUser === undefined){
+			logger.info(user, 'cant initiate event replay for unknown user', matches);
+			return;
 		}
-		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
-			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
-			var user = matches[1];
-			var lookedUpUser = users[user];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate event replay for unknown user', matches);
-				return;
-			}
 
-			var date = matches[2];
-			var objectTags = matches[3];
-			var actionTags = matches[4];
-			logger.info(user, 'initiating event replay', {date: date, objectTags: [], actionTags: []});
+		var date = matches[2];
+		logger.info(user, 'initiating event replay', {date: date, objectTags: [], actionTags: []});
 
-			var eventSink = function(event){
-				messagePublisher('events', JSON.stringify(event));
-			}
-			eventReplayer.replayEvents(repos, lookedUpUser, date, [], [], eventSink);
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
+
+		eventReplayer.replayEvents(repos, lookedUpUser, date, [], [], eventSink);
+	};
+
+	var processEventsReplayForUserAndDayAndTags = function(){
+		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+		var user = matches[1];
+		var lookedUpUser = users[user];
+		if(lookedUpUser === undefined){
+			logger.info(user, 'cant initiate event replay for unknown user', matches);
+			return;
 		}
-		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
-			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
-			var user = matches[1];
-			var lookedUpUser = users[user];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate event replay for unknown user', matches);
-				return;
-			}
 
-			var date = matches[2];
-			var objectTags = matches[3].split(",");
-			var actionTags = matches[4].split(",");
-			logger.info(user, 'initiating event replay', {date: date, objectTags: objectTags, actionTags: actionTags});
+		var date = matches[2];
+		var objectTags = matches[3].split(",");
+		var actionTags = matches[4].split(",");
+		logger.info(user, 'initiating event replay', {date: date, objectTags: objectTags, actionTags: actionTags});
 
-			var eventSink = function(event){
-				messagePublisher('events', JSON.stringify(event));
-			}
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
 
-			eventReplayer.replayEvents(repos, lookedUpUser, date, objectTags, actionTags, eventSink);
+		eventReplayer.replayEvents(repos, lookedUpUser, date, objectTags, actionTags, eventSink);
+	};
+
+	var processEventsReplayForUserAndMonthAndTags = function(){
+		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+		var user = matches[1];
+		var lookedUpUser = users[user];
+		if(lookedUpUser === undefined){
+			logger.info(user, 'cant initiate event replay for unknown user', matches);
+			return;
 		}
-		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
-			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
-			var user = matches[1];
-			var lookedUpUser = users[user];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate event replay for unknown user', matches);
-				return;
-			}
 
-			var date = matches[2];
-			var objectTags = matches[3].split(",");
-			var actionTags = matches[4].split(",");
-			logger.info(user, 'initiating event replay', {date: date, objectTags: objectTags, actionTags: actionTags});
+		var date = matches[2];
+		var objectTags = matches[3].split(",");
+		var actionTags = matches[4].split(",");
+		logger.info(user, 'initiating event replay', {date: date, objectTags: objectTags, actionTags: actionTags});
 
-			var eventSink = function(event){
-				messagePublisher('events', JSON.stringify(event));
-			}
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
 
-			eventReplayer.replayEvents(repos, lookedUpUser, date, objectTags, actionTags, eventSink);
+		eventReplayer.replayEvents(repos, lookedUpUser, date, objectTags, actionTags, eventSink);
+	};
+
+	var processEventsReplayForUserAndYearAndTags = function(){
+		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+		var user = matches[1];
+		var lookedUpUser = users[user];
+		if(lookedUpUser === undefined){
+			logger.info(user, 'cant initiate event replay for unknown user', matches);
+			return;
 		}
-		else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
-			var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
-			var user = matches[1];
-			var lookedUpUser = users[user];
-			if(lookedUpUser === undefined){
-				logger.info(cronDailyUser, 'cant initiate event replay for unknown user', matches);
-				return;
-			}
 
-			var date = matches[2];
-			var objectTags = matches[3].split(",");
-			var actionTags = matches[4].split(",");
-			logger.info(user, 'initiating event replay', {date: date, objectTags: objectTags, actionTags: actionTags});
+		var date = matches[2];
+		var objectTags = matches[3].split(",");
+		var actionTags = matches[4].split(",");
+		logger.info(user, 'initiating event replay', {date: date, objectTags: objectTags, actionTags: actionTags});
 
-			var eventSink = function(event){
-				messagePublisher('events', JSON.stringify(event));
-			}
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
 
-			eventReplayer.replayEvents(repos, lookedUpUser, date, objectTags, actionTags, eventSink);
-		}
-		else if(message.substring(0,7) === 'logging'){
-			logger.level = message.split('=')[1];
-			logger[logger.level](channel, 'logging level set to ' + logger.level);
-		}
+		eventReplayer.replayEvents(repos, lookedUpUser, date, objectTags, actionTags, eventSink);
+	};
+
+	if(message === 'bulletin'){
+		logger.info(message, 'asking processor to send bulletin to users');
+		bulletin.send(users, repos);
+	}
+	if(message === 'cards/archive'){
+		logger.info(message, 'requesting archive');
+		cards.archive(users, repos);
+	}
+	else if(message === 'cron/daily'){
+		logger.info(message, 'asking processor to send users events to apps');
+		_.forEach(eventModules, cronDailyYesterday);
+	}
+	else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+		processCronDailyMessageForDateAndTags();
+	} 
+	else if(/^cron\/daily\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
+		processCronDailyMessageForDate();
+	} 
+	else if(/^cron\/daily\/user\/(.+)\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})$/.test(message)){
+		processCronDailyMessageForDateRange();
+	}
+	else if(/^cron\/daily\/user\/(.+)$/.test(message)){
+		processCronDailyMessageForUser();
+	}
+	else if(/^cards\/recreate\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+		processMessageForRecreate();
+	} 
+	else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
+		processEventReplayForDate();
+	}
+	else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.test(message)){
+		processEventReplayForUserAndYear();
+	}
+	else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})$/.test(message)){
+		processEventsReplayForUserAndMonth();
+	}
+	else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
+		processEventsReplayForUserAndDay();
+	}
+	else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+		processEventsReplayForUserAndDayAndTags();
+	}
+	else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+		processEventsReplayForUserAndMonthAndTags();
+	}
+	else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+		processEventsReplayForUserAndYearAndTags();
+	}
+	else if(message.substring(0,7) === 'logging'){
+		logger.level = message.split('=')[1];
+		logger[logger.level]('userbroker', 'logging level set to ' + logger.level);
+	}
+};
+
+var channels = {
+	events: processEventsChannel,
+	users: processUsersChannel,
+	userbroker: processUserBrokerChannel
+};
+
+var subscribeMessage = function(channel, message){
+	logger.info(channel, message);
+
+	var processor = channels[channel];
+	if(processor){
+		processor(message);
 	}
 	else{
 		logger.info(channel, 'unknown event type');
@@ -551,7 +641,7 @@ var setCardsRepo = function(repo){
 
 var setCardScheduleRepo = function(repo){
 	repos.cardSchedule = repo;
-}
+};
 
 var setUserRollupRepo = function(userRollupRepo){
 	repos.userRollupByDay = userRollupRepo;
@@ -559,7 +649,7 @@ var setUserRollupRepo = function(userRollupRepo){
 
 var setBulletinRepo = function(bulletinRepo){
 	repos.bulletin = bulletinRepo;
-}
+};
 
 var setAppBrokerRepo = function(appBrokerRepo){
 	repos.appBroker = appBrokerRepo;
@@ -571,11 +661,11 @@ var setIdGenerator = function(generator){
 
 var setEventRepo = function(eventRepo){
 	repos.eventRepo = eventRepo;
-}
+};
 
 var setMessagePublisher = function(publisher){
 	messagePublisher = publisher;
-}
+};
 
 module.exports = {};
 module.exports.subscribeMessage = subscribeMessage;

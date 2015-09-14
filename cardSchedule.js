@@ -1,8 +1,6 @@
 'use strict';
 var _ = require('lodash');
-var request = require('request');
 var logger = require('winston');
-var crypto = require('crypto');
 
 // Set default node environment to development
 console.log(process === undefined);
@@ -70,7 +68,7 @@ var processEvent = function(streamEvent, user, repos){
 		userId: user._id,
 		date: streamEvent.dateTime.substring(0, 10),
 		streamid: streamEvent.streamid
-	}
+	};
 
 	var objectTags = _(streamEvent.objectTags)
 					.map(function(tag){return tag.toLowerCase();})
@@ -85,7 +83,7 @@ var processEvent = function(streamEvent, user, repos){
 	var operation = {
 		$set: {
 		}
-	}
+	};
 
 	logger.debug(user.username, 'adding card schedule ', [command, condition.date]);
 	operation.$set[command] = true;
@@ -95,7 +93,7 @@ var processEvent = function(streamEvent, user, repos){
 
 
 
-var cronDaily = function(users, repos){
+var cronDaily = function(){
 };
 
 module.exports = {};

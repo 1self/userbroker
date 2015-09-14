@@ -41,7 +41,7 @@ MongoClient.connect(quantifiedDevUrl, function(err, qdDb) {
 
 	var publishMessage = function(channel, message){
 		redisClient.publish('events', message);
-	}
+	};
 	
 	broker.setMessagePublisher(publishMessage);
 
