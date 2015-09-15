@@ -360,7 +360,7 @@ var createTopInsight = function(user, rollup, property, repos){
 				var varianceSq = variance * variance;
 				total += varianceSq;
 				if(isNaN(total)){
-					logger.error(user.username, 'Error calculating sumSquares', item);
+					logger.error(user.username, 'Error calculating sumSquares', JSON.stringify(item));
 				}
 				return total;
 			}, 0);
