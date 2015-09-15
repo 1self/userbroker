@@ -181,7 +181,7 @@ var processUserAdded = function(userEvent, userRepo){
 	var newUser = {
 		_id: userEvent._id,
 		username: userEvent.username
-	}
+	};
 
 	users[userEvent.username] = newUser;
 
@@ -206,13 +206,13 @@ var processUserAdded = function(userEvent, userRepo){
 	});
 	
 	logger.info(userEvent.username, 'processed a user event', userEvent);
-}
+};
 
 var processUsersChannel = function(message){
 	var userMessage = JSON.parse(message);
 
 	if(userMessage.type === 'added'){
-		processUserAdded(userMessage, repos.user)
+		processUserAdded(userMessage, repos.user);
 	} else {
 		processStreamAdd(userMessage, repos.user);
 	}
