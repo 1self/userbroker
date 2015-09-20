@@ -73,7 +73,7 @@ var removeSchedule = function(user, repos, cardSchedule){
 			_id: cardSchedule._id
 		};
 
-		logger.debug(user.username, 'removing schdeule from the database', condition);
+		logger.silly(user.username, 'removing schdeule from the database', condition);
 
 		repos.cardSchedule.remove(condition, function(error, result){
 			if(error){
@@ -90,22 +90,22 @@ var removeSchedule = function(user, repos, cardSchedule){
 
 var createTopCards = function(user, position, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
-		logger.debug(user.username, 'Adding top cards');
+		logger.silly(user.username, 'Adding top cards');
 
 		if(rollup.variance < 0){
-			logger.debug(user.username, 'variance is negative, ignoring for top cards, [actionTags, objectTags, value, variance, mean]', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			logger.silly(user.username, 'variance is negative, ignoring for top cards, [actionTags, objectTags, value, variance, mean]', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
 			resolve();
 			return;	
 		}
 
 		if(isNaN(rollup.mean)){
-			logger.debug(user.username, 'only a single value, no mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			logger.silly(user.username, 'only a single value, no mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
 			resolve();
 			return;	
 		}
 
 		if(rollup.sampleCorrectedStdDev === 0){
-			logger.debug(user.username, 'rollup is the same as mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			logger.silly(user.username, 'rollup is the same as mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
 			resolve();
 			return;	
 		}
@@ -187,7 +187,7 @@ var createTopCards = function(user, position, rollup, property, repos){
 			card.cardText = positionText + 'highest ever number of commits';
 		}
 
-		logger.debug(user.username, 'Adding card, ', [card.propertyNamde]);
+		logger.silly(user.username, 'Adding card, ', [card.propertyNamde]);
 		repos.cards.insert(card, function(error, response){
 			if(error){
 				logger.error(user.username, 'error inserting card, [property, error]: ', [card.propertyName, error]);
@@ -195,35 +195,33 @@ var createTopCards = function(user, position, rollup, property, repos){
 			}
 			else
 			{
-				logger.debug(user.username, 'top 10 card inserted, [property, response], : ', [card.propertyName, response.result]);
+				logger.silly(user.username, 'top 10 card inserted, [property, response], : ', [card.propertyName, response.result]);
 				resolve();
 			}
 		});
 	});
 };
 
-
-
 var createBottomsCard = function(user, position, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
 
-		logger.debug(user.username, 'Adding bottom card');
+		logger.silly(user.username, 'Adding bottom card');
 		var card = {};
 
 		if(rollup.variance >= 0){
-			logger.debug(user.username, 'variance is positive, ignoring for bottom 10');
+			logger.silly(user.username, 'variance is positive, ignoring for bottom 10');
 			resolve();
 			return;
 		}
 
 		if(isNaN(rollup.mean)){
-			logger.debug(user.username, 'only a single value, no mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			logger.silly(user.username, 'only a single value, no mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
 			resolve();
 			return;	
 		}
 
 		if(rollup.sampleCorrectedStdDev === 0){
-			logger.debug(user.username, 'rollup is the same as mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
+			logger.silly(user.username, 'rollup is the same as mean', [rollup.date, rollup.objectTags, rollup.actionTags, rollup.propertyName, rollup.value, rollup.variance, rollup.mean]);
 			resolve();
 			return;	
 		}
@@ -305,7 +303,7 @@ var createBottomsCard = function(user, position, rollup, property, repos){
 			card.cardText = positionText + 'lowest ever number of commits';
 		}
 
-		logger.debug(user.username, 'Adding card, ', [card.propertyName]);
+		logger.silly(user.username, 'Adding card, ', [card.propertyName]);
 		repos.cards.insert(card, function(error, response){
 			if(error){
 				logger.error(user.username, 'bottom 10 error inserting card, [propertyName, error]: ', [card.propertyName, error]);
@@ -313,7 +311,7 @@ var createBottomsCard = function(user, position, rollup, property, repos){
 			}
 			else
 			{
-				logger.debug(user.username, 'bottom 10 card inserted, [property, response], : ', [card.propertyName, response.result]);
+				logger.silly(user.username, 'bottom 10 card inserted, [property, response], : ', [card.propertyName, response.result]);
 				resolve();
 			}
 		});
@@ -323,7 +321,7 @@ var createBottomsCard = function(user, position, rollup, property, repos){
 var createTopInsight = function(user, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
 		var propertyPath = property.join(".");
-		logger.debug([user.username, rollup.date].join(':'), 'analyzing top10', [propertyPath]);
+		logger.silly([user.username, rollup.date].join(':'), 'analyzing top10', [propertyPath]);
 		var condition = {
 			$query: {
 				userId: rollup.userId,
@@ -342,10 +340,10 @@ var createTopInsight = function(user, rollup, property, repos){
 			sum: true
 		};
 
-		logger.debug(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
+		logger.silly(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
 
 		repos.userRollupByDay.find(condition).toArray(function(error, top10){
-			logger.debug(user.username, 'retrieved the top10');
+			logger.silly(user.username, 'retrieved the top10');
 
 			rollup.value = _.get(rollup, propertyPath);
 			
@@ -385,16 +383,16 @@ var createTopInsight = function(user, rollup, property, repos){
 			});
 
 			if(top10Index >= 3){
-				logger.debug(user.username, 'rollup didnt make it in top 3');
+				logger.silly(user.username, 'rollup didnt make it in top 3');
 				resolve(user, rollup, propertyPath, repos);
 				return;
 			}
 
-			logger.debug(user.username, 'top 10 checking dateTimes: ', [rollup.date, rollup.date]);
+			logger.silly(user.username, 'top 10 checking dateTimes: ', [rollup.date, rollup.date]);
 			
 			createTopCards(user, top10Index, rollup, propertyPath, repos)
 			.then(function(){
-				logger.debug(user.username, 'top 10 finished with rollup, [propertyPath]', [propertyPath]);
+				logger.silly(user.username, 'top 10 finished with rollup, [propertyPath]', [propertyPath]);
 				resolve(user, rollup, propertyPath, repos);
 			})
 			.catch(function(error){
@@ -408,7 +406,7 @@ var createTopInsight = function(user, rollup, property, repos){
 var createBottomInsight = function(user, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
 		var propertyPath = property.join(".");
-		logger.debug([user.username, rollup.date].join(':'), 'analyzing bottom10, [propertyPath]', [propertyPath]);
+		logger.silly([user.username, rollup.date].join(':'), 'analyzing bottom10, [propertyPath]', [propertyPath]);
 		var condition = {
 			$query: {
 				userId: rollup.userId,
@@ -427,13 +425,13 @@ var createBottomInsight = function(user, rollup, property, repos){
 			sum: true
 		};
 
-		logger.debug(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
+		logger.silly(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
 
 		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
 			logger.debug(user.username, 'retrieved the bottom10');
 
 			if(bottom10.length === 0){
-				logger.debug(user.username, 'nothing in the bottom10, [propertyPath]', propertyPath);
+				logger.silly(user.username, 'nothing in the bottom10, [propertyPath]', propertyPath);
 				resolve(user, rollup, propertyPath, repos);
 				return;
 			}
@@ -477,15 +475,15 @@ var createBottomInsight = function(user, rollup, property, repos){
 				});
 
 				if(bottom10Index >= 1){
-					logger.debug(user.username, 'rollup didnt make it in bottom 1');
+					logger.silly(user.username, 'rollup didnt make it in bottom 1');
 					resolve(user, rollup, propertyPath, repos);
 					return;
 				}
 
-				logger.debug(user.username, 'checking dateTimes: ', [rollup.date, rollup.date]);
+				logger.silly(user.username, 'checking dateTimes: ', [rollup.date, rollup.date]);
 				createBottomsCard(user, bottom10Index, rollup, propertyPath, repos)
 				.then(function(){
-					logger.debug(user.username, 'bottom 10 finished with rollup, [propertyPath]', [propertyPath]);
+					logger.silly(user.username, 'bottom 10 finished with rollup, [propertyPath]', [propertyPath]);
 					resolve(user, rollup, propertyPath, repos);
 				})
 				.catch(function(error){
@@ -513,7 +511,7 @@ var createDailyInsightCards = function(user, repos, params){
 	
 
 	var createDatabaseQuery = function(queryParams){
-		logger.debug(user.username, 'creating database condition, [query params]', queryParams);
+		logger.silly(user.username, 'creating database condition, [query params]', queryParams);
 		var condition = {
 			userId: user._id
 		};
@@ -547,7 +545,7 @@ var createDailyInsightCards = function(user, repos, params){
 	// to save space in the database.
 	var getRollupsFromDatabase = function(condition){
 		return q.Promise(function(resolve, reject){
-			logger.debug(user.username, 'getting rollups from database, [condition]', JSON.stringify(condition));
+			logger.silly(user.username, 'getting rollups from database, [condition]', JSON.stringify(condition));
 			repos.userRollupByDay.find(condition).toArray(function(error, rollupsForDates){
 				if(error){
 					reject("error getting rollups from the database for " + user.username);
@@ -561,7 +559,7 @@ var createDailyInsightCards = function(user, repos, params){
 	};
 
 	var generateInsightsFromRollups = function(rollups){
-		logger.debug(user.username, 'generating insights from rollups');
+		logger.silly(user.username, 'generating insights from rollups');
 		var createInsightForRollup = function(path, user, properties, repos, rollup){
 			var result = [];
 			for(var property in properties){
@@ -591,7 +589,7 @@ var createDailyInsightCards = function(user, repos, params){
 
 		logger.debug(user.username, [params.date, 'found rollups'].join(':'), [params.date, rollups.length]);
 		for(var i = 0; i < rollups.length; i++){
-			logger.debug(user.username, 'creating insights for actionTags, objectTags, sum:', [rollups.actionTags, rollups.objectTags, rollups.sum]);
+			logger.silly(user.username, 'creating insights for actionTags, objectTags, sum:', [rollups.actionTags, rollups.objectTags, rollups.sum]);
 			var rollup = rollups[i];
 			var insightPromises = createInsightForRollup(['sum'], user, rollup.sum, repos, rollup);
 			rollupPromises = rollupPromises.concat(insightPromises);
@@ -602,7 +600,7 @@ var createDailyInsightCards = function(user, repos, params){
 
 	var getCardCount = function(){
 		return q.Promise(function(resolve, reject){
-			logger.debug(user.username, 'getting card count');
+			logger.silly(user.username, 'getting card count');
 			var pipeline = [];
 			pipeline.push({
 				$match: {userId: user._id}
@@ -612,7 +610,7 @@ var createDailyInsightCards = function(user, repos, params){
 
 			repos.cards.aggregate(pipeline, function(error, response){
 				if(error){
-					logger.debug(user.username, 'error getting card count', error);
+					logger.error(user.username, 'error getting card count', error);
 					reject(error);
 				}
 				else{
@@ -641,11 +639,11 @@ var createDailyInsightCards = function(user, repos, params){
 
 			repos.user.update(condition, operation, options, function(error, response){
 				if(error){
-					logger.debug(user.username, 'error setting card count on user', error);
+					logger.error(user.username, 'error setting card count on user', error);
 					reject(error);
 				} 
 				else {
-					logger.debug(user.username, 'card count was set on user', response.result);
+					logger.silly(user.username, 'card count was set on user', response.result);
 					resolve(response);
 				}
 			});
@@ -670,7 +668,7 @@ var createDailyInsightCards = function(user, repos, params){
 
 var removeExistingCards = function(user, repos, params){
 	return q.Promise(function(resolve, reject){
-		logger.debug(user.username, 'removing existing cards, [date, objectTags, actionTags]', [params.date, params.objectTags, params.actionTags]);
+		logger.silly(user.username, 'removing existing cards, [date, objectTags, actionTags]', [params.date, params.objectTags, params.actionTags]);
 		var condition = {
 			userId: user._id,
 			cardDate: params.date,
@@ -710,7 +708,7 @@ var createCardsForDate = function(user, repos, params){
 };
 
 var processCardSchedules = function(user, repos, streamEvent){
-	logger.debug(user.username, 'processing card schedules, streamEvent', streamEvent);
+	logger.silly(user.username, 'processing card schedules, streamEvent', streamEvent);
 	return q.Promise(function(resolve, reject){
 		var promise = q();
 
@@ -722,6 +720,7 @@ var processCardSchedules = function(user, repos, streamEvent){
 			condition.streamid = streamEvent.streamid;
 		}
 
+		var scheduleCount = 0;
 		repos.cardSchedule.find(condition).each(function(error, cardSchedule){
 			if(error){
 				logger.error(user.username, 'error from db while processing sync end event', error);
@@ -730,7 +729,7 @@ var processCardSchedules = function(user, repos, streamEvent){
 
 			if(cardSchedule === null){
 				promise.then(function(){
-					logger.debug(user.username, 'processed last card schedule, streamd', condition.streamid);
+					logger.silly(user.username, 'processed card schedules, streamid, schedule count', [condition.streamid, scheduleCount]);
 					resolve();
 				});
 
@@ -755,7 +754,9 @@ var processCardSchedules = function(user, repos, streamEvent){
 				});
 			});
 
-			logger.debug(user.username, 'creating cards for schdules, scheduleCount', dateParams.length);
+			scheduleCount += cardSchedule.tags.length;
+
+			logger.silly(user.username, 'creating cards for schedules, scheduleCount', dateParams.length);
 
 			dateParams.forEach(function(dateParam){
 				promise = promise.then(function(){
@@ -809,14 +810,14 @@ var archiveUser = function(user, repos){
 				}
 			});
 
-			logger.debug(user.username, 'getting the last read date, pipeline', pipeline);
+			logger.silly(user.username, 'getting the last read date, pipeline', pipeline);
 			repos.cards.aggregate(pipeline, function(error, result){
 				if(error){
 					reject(error);
 				}
 				else{
 					params.maxDate = result.length > 0 ? result[0].maxDate : null;
-					logger.debug(user.username, 'archiving, max date is ', params.maxDate);
+					logger.debug(user.username, 'archiving cards, last read date is ', params.maxDate);
 					resolve(params);
 				}
 			});
@@ -841,13 +842,13 @@ var archiveUser = function(user, repos){
 
 			var options = {multi: true};
 
-			logger.debug(user.username, 'archive: updating cards, [condition, operation]', [condition, operation]);
+			logger.silly(user.username, 'archive: updating cards, [condition, operation]', [condition, operation]);
 			repos.cards.update(condition, operation, options, function(error, response){
 				if(error){
 					reject(error);
 				}
 				else{
-					logger.debug(user.username, 'archived old cards', response.result	);
+					logger.debug(user.username, 'archived cards', response.result	);
 					resolve(params);
 				}
 			});
@@ -920,7 +921,7 @@ var groundsForRejection = function(user, repos, params){
 
 var removeExistingCardsRange = function(user, repos, params){
 	return q.Promise(function(resolve, reject){
-		logger.debug(user.username, 'removing existing cards');
+		logger.silly(user.username, 'removing existing cards');
 		var condition = {
 			userId: user._id,
 			cardDate: {
@@ -952,11 +953,11 @@ var recreateCardsForTagsAndDateRange = function(user, repos, params){
 		}
 
 		logger.info(user.username, 'starting card recreation, params', params);
-		logger.debug(user.username, 'creating date range');
+		logger.silly(user.username, 'creating date range');
 		var dateRange = moment(params.from).twix(params.to, {allDay: true});
-		logger.debug(user.username, 'creating date array');
+		logger.silly(user.username, 'creating date array');
 		var iter = dateRange.iterate("days");
-		logger.debug(user.username, 'created date array');
+		logger.silly(user.username, 'created date array');
 		var dateParams = [];
 		while(iter.hasNext()){
 			dateParams.push({
@@ -975,7 +976,7 @@ var recreateCardsForTagsAndDateRange = function(user, repos, params){
 		});
 
 		promise.then(function(){
-			logger.debug(user.username, 'finished recreating cards, params', params);
+			logger.info(user.username, 'finished recreating cards, params', params);
 			resolve();
 		});
 	});
