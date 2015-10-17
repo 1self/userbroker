@@ -107,6 +107,18 @@ var setLogger = function(l){
 
 setLogger(winston);
 
+var today = function(){
+	var d = new Date();
+	d.setDate(d.getDate());
+	return d.toISOString().substring(0, 10); 
+};
+
+var yesterday = function(){
+	var d = new Date();
+	d.setDate(d.getDate() - 1);
+	return d.toISOString().substring(0, 10); 
+};
+
 var cacheUser = function(user){
 	users[user.username] = user;
 	_.map(user.streams, function(stream){
@@ -151,9 +163,8 @@ var processStreamAdd = function(userEvent, userRepository){
 };
 
 var cronDailyYesterday = function(module){
-	var yesterday = moment().subtract(1, 'days');
 	var params = {
-		date: yesterday.format("YYYY-MM-DD")
+		date: yesterday()
 	};
 
 	module.cronDaily(users, repos, params);
@@ -524,13 +535,33 @@ var processUserBrokerChannel = function(message){
 		eventReplayer.replayEvents(repos, lookedUpUser, date, objectTags, actionTags, eventSink);
 	};
 
+	var processArchiveCardsForDate = function(message){
+		var matches = /cards\/archive\/date\/(\d{4}-\d{2}-\d{2})$/.exec(message);
+		var date = matches[1];
+		var params = {
+			date: date
+		};
+		logger.info(message, 'requesting archive for ', params);
+		cards.archive(users, repos, params);
+	}
+
+	var processArchiveCards = function(message){
+		logger.info(message, 'requesting archive');
+		var params = {
+			date: yesterday()
+		}
+		cards.archive(users, repos, params);
+	}
+
 	if(message === 'bulletin'){
 		logger.info(message, 'asking processor to send bulletin to users');
 		bulletin.send(users, repos);
 	}
-	if(message === 'cards/archive'){
-		logger.info(message, 'requesting archive');
-		cards.archive(users, repos);
+	else if(message === 'cards/archive'){
+		processArchiveCards(message);
+	}
+	else if(/cards\/archive\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
+		processArchiveCardsForDate(message);
 	}
 	else if(message === 'cron/daily'){
 		logger.info(message, 'asking processor to send users events to apps');

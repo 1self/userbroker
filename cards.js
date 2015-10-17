@@ -502,7 +502,7 @@ var blacklist = function(property, rollup){
 	}
 
 	return result;
-}
+};
 
 var createDailyInsightCards = function(user, repos, params){
 	logger.debug(user.username, [params.date , 'creating insights'].join(': '));
@@ -708,8 +708,9 @@ var createCardsForDate = function(user, repos, params){
 };
 
 var processCardSchedules = function(user, repos, streamEvent){
-	logger.silly(user.username, 'processing card schedules, streamEvent', streamEvent);
+	
 	return q.Promise(function(resolve, reject){
+		logger.silly(user.username, 'processing card schedules, streamEvent', streamEvent);
 		var promise = q();
 
 		var condition = {
@@ -721,7 +722,8 @@ var processCardSchedules = function(user, repos, streamEvent){
 		}
 
 		var scheduleCount = 0;
-		repos.cardSchedule.find(condition).each(function(error, cardSchedule){
+		var cursor = repos.cardSchedule.find(condition);
+		cursor.each(function(error, cardSchedule){
 			if(error){
 				logger.error(user.username, 'error from db while processing sync end event', error);
 				return;
@@ -768,6 +770,8 @@ var processCardSchedules = function(user, repos, streamEvent){
 				});
 			});
 		});
+
+		logger.info(user.username, 'processing card schedules, count', scheduleCount);
 	});
 };
 
@@ -789,40 +793,41 @@ var processEvent = function(streamEvent, user, repos){
 	return promise;
 };
 
-var archiveUser = function(user, repos){
-	logger.debug(user.username, 'archiving users read cards');
-
-	var getLastReadDate = function(params){
-		return q.Promise(function(resolve, reject){
-			var pipeline = [];
-			pipeline.push({
-				$match: {
-					userId: user._id, 
-					read: true, 
-					archive: {$ne: false}
-				}
-			});
-
-			pipeline.push({
-				$group: {
-					_id: 0, 
-					maxDate: {$max: "$cardDate"}
-				}
-			});
-
-			logger.silly(user.username, 'getting the last read date, pipeline', pipeline);
-			repos.cards.aggregate(pipeline, function(error, result){
-				if(error){
-					reject(error);
-				}
-				else{
-					params.maxDate = result.length > 0 ? result[0].maxDate : null;
-					logger.debug(user.username, 'archiving cards, last read date is ', params.maxDate);
-					resolve(params);
-				}
-			});
+var getLastReadDate = function(params){
+	return q.Promise(function(resolve, reject){
+		var pipeline = [];
+		pipeline.push({
+			$match: {
+				userId: params.user._id, 
+				read: true, 
+				archive: {$ne: false},
+				cardDate: {$lte: params.date}
+			}
 		});
-	};
+
+		pipeline.push({
+			$group: {
+				_id: 0, 
+				maxDate: {$max: "$cardDate"}
+			}
+		});
+
+		logger.silly(params.user.username, 'getting the last read date, pipeline', pipeline);
+		params.repos.cards.aggregate(pipeline, function(error, result){
+			if(error){
+				reject(error);
+			}
+			else{
+				params.maxDate = result.length > 0 ? result[0].maxDate : null;
+				logger.debug(params.user.username, 'archiving cards, last read date is ', params.maxDate);
+				resolve(params);
+			}
+		});
+	});
+};
+
+var archiveUser = function(user, repos, params){
+	logger.debug(user.username, 'archiving users read cards');
 
 	var archiveOldCards = function(params){
 		return q.Promise(function(resolve, reject){
@@ -831,7 +836,7 @@ var archiveUser = function(user, repos){
 			}
 
 			var condition = {
-				userId: user._id ,
+				userId: params.user._id ,
 				archive: {$ne: true},
 				cardDate: {$lte: params.maxDate}
 			};
@@ -842,38 +847,43 @@ var archiveUser = function(user, repos){
 
 			var options = {multi: true};
 
-			logger.silly(user.username, 'archive: updating cards, [condition, operation]', [condition, operation]);
-			repos.cards.update(condition, operation, options, function(error, response){
+			logger.silly(params.user.username, 'archive: updating cards, [condition, operation]', [condition, operation]);
+			params.repos.cards.update(condition, operation, options, function(error, response){
 				if(error){
 					reject(error);
 				}
 				else{
-					logger.debug(user.username, 'archived cards', response.result	);
+					logger.debug(params.user.username, 'archived cards', response.result);
 					resolve(params);
 				}
 			});
 		});
 	};
 
-	var params = {
-		repos: repos,
-		user: user
-	};
+	params.repos = repos;
+	params.user = user;
 
 	return getLastReadDate(params)
 	.then(archiveOldCards);
 };
 
-var archive = function(users, repos){
-	logger.debug('', 'archiving users cards requested');
-	_.map(users, function(user){
-		
-		archiveUser(user, repos)
-		.catch(function(error){
-			logger.error(user.username, 'error occurred while generating insight', error);
-		})
-		.done();
+var archive = function(users, repos, params){
+	logger.debug('', 'archiving users from ', params.date);
+
+	var promise = q();
+	_.values(users).forEach(function (user) {
+		promise = promise.then(archiveUser(user, repos, params));
 	});
+	promise = promise.then(function(){
+		q.Promise(function(resolve){
+			logger.info('', 'finished archiving');
+			resolve();
+		});
+	})
+	.catch(function(error){
+		logger.error('', 'error occurred while archiving', error);
+	})
+	.done();
 };
 
 var cronDaily = function(users, repos, params){
@@ -881,7 +891,7 @@ var cronDaily = function(users, repos, params){
 	_.map(users, function(user){
 		archiveUser(users, repos, params)
 		.then(function(){
-			processCardSchedules(user, repos);
+			return processCardSchedules(user, repos);
 		})
 		.catch(function(error){
 			logger.error(user.username, 'error while running cron daily, error', error);
