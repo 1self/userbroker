@@ -866,7 +866,7 @@ var archiveUser = function(user, repos, params){
 	// assume that this is a shared object and make our own copy
 	var paramsForUser = {
 		date: params.date,
-		repos: params.repos,
+		repos: repos,
 		user: user
 	};
 
