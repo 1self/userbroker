@@ -12,6 +12,7 @@ var assert = require('assert');
 var moment = require('moment');
 var q = require('q');
 require('twix'); // moment plugin
+var conceal = require('concealotron');
 
 winston.level = 'info';
 winston.info('LOGGINGDIR: ' + process.env.LOGGINGDIR);
@@ -125,7 +126,7 @@ var cacheUser = function(user){
 		logger.debug(user.username, 'mapping ' + stream.streamid + ' to ' + user.username);
 		streamsToUsers[stream.streamid] = user;
 	});
-	logger.info(user.username, 'mapped ' + user.username + ' streams');
+	logger.info(user.username, 'mapped ' + user.username + '(' + user._id + ') streams');
 };
 
 // eas: on any user event we reload the whole user
