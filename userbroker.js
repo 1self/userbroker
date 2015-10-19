@@ -108,12 +108,6 @@ var setLogger = function(l){
 
 setLogger(winston);
 
-var today = function(){
-	var d = new Date();
-	d.setDate(d.getDate());
-	return d.toISOString().substring(0, 10); 
-};
-
 var yesterday = function(){
 	var d = new Date();
 	d.setDate(d.getDate() - 1);
@@ -126,7 +120,7 @@ var cacheUser = function(user){
 		logger.debug(user.username, 'mapping ' + stream.streamid + ' to ' + user.username);
 		streamsToUsers[stream.streamid] = user;
 	});
-	logger.info(user.username, 'mapped ' + user.username + '(' + user._id + ') streams');
+	logger.info(user.username, 'mapped ' + user.username + '(' + conceal(user._id) + ') streams');
 };
 
 // eas: on any user event we reload the whole user
