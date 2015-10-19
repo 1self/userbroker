@@ -860,12 +860,17 @@ var archiveOldCards = function(params){
 	};
 
 var archiveUser = function(user, repos, params){
+
 	logger.debug(user.username, 'archiving users read cards');
 
-	params.repos = repos;
-	params.user = user;
+	// assume that this is a shared object and make our own copy
+	var paramsForUser = {
+		date: params.date,
+		repos: params.repos,
+		user: user
+	};
 
-	return getLastReadDate(params)
+	return getLastReadDate(paramsForUser)
 	.then(archiveOldCards);
 };
 
