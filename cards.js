@@ -828,10 +828,7 @@ var getLastReadDate = function(params){
 	});
 };
 
-var archiveUser = function(user, repos, params){
-	logger.debug(user.username, 'archiving users read cards');
-
-	var archiveOldCards = function(params){
+var archiveOldCards = function(params){
 		return q.Promise(function(resolve, reject){
 			if(params.maxDate === null){
 				resolve(params);
@@ -862,6 +859,9 @@ var archiveUser = function(user, repos, params){
 		});
 	};
 
+var archiveUser = function(user, repos, params){
+	logger.debug(user.username, 'archiving users read cards');
+
 	params.repos = repos;
 	params.user = user;
 
@@ -891,7 +891,7 @@ var archive = function(users, repos, params){
 var cronDaily = function(users, repos, params){
 	logger.debug('', 'cron daily requested');
 	_.map(users, function(user){
-		archiveUser(users, repos, params)
+		archiveUser(user, repos, params)
 		.then(function(){
 			return processCardSchedules(user, repos);
 		})
