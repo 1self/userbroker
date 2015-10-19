@@ -756,7 +756,9 @@ var processCardSchedules = function(user, repos, streamEvent){
 				});
 			});
 
-			scheduleCount += cardSchedule.tags.length;
+			if(cardSchedule.tags){
+				scheduleCount += cardSchedule.tags.length;
+			}
 
 			logger.silly(user.username, 'creating cards for schedules, scheduleCount', dateParams.length);
 
