@@ -631,7 +631,8 @@ var loadUsers = function(userRepository, callback){
 	logger.info('loading users', 'start');
 	var projection = {
 		username: true,
-		streams: true
+		streams: true,
+		_id: true
 	};
 
 	userRepository.find({}, projection).toArray(function(error, docs){
