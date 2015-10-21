@@ -428,7 +428,7 @@ var createBottomInsight = function(user, rollup, property, repos){
 		logger.silly(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
 
 		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
-			logger.debug(user.username, 'retrieved the bottom10');
+			logger.debug(user.username, 'retrieved the bottom10', [condition.objectTags, condition.actionTags, condition.date]);
 
 			if(bottom10.length === 0){
 				logger.silly(user.username, 'nothing in the bottom10, [propertyPath]', propertyPath);
@@ -778,7 +778,8 @@ var processCardSchedules = function(user, repos, streamEvent){
 var addSyncingCard = function(streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
 		var date = streamEvent.dateTime.substring(0, 10);
-		logger.silly(user.username, 'adding sync card', date);
+		logger.silly(user.username, 'adding sync card', [date, streamEvent.source]);
+
 		var card = {};
 		card.userId = user._id;	
 		card.type = "datasyncing";
@@ -786,8 +787,9 @@ var addSyncingCard = function(streamEvent, user, repos){
 		card.source = streamEvent.source;
 		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
+		
 
-		logger.silly(user.username, 'Adding sync card', [card.source]);
+		logger.silly(user.username, 'Adding sync card, inserting ', card);
 		repos.cards.insert(card, function(error, response){
 			if(error){
 				logger.error(user.username, 'error inserting sync card', [error, streamEvent.source]);
@@ -795,7 +797,7 @@ var addSyncingCard = function(streamEvent, user, repos){
 			}
 			else
 			{
-				logger.silly(user.username, 'sync card inserted', [streamEvent.source, response.result]);
+				logger.debug(user.username, 'sync card inserted', [streamEvent.source, response.result]);
 				resolve();
 			}
 		});
@@ -805,7 +807,7 @@ var addSyncingCard = function(streamEvent, user, repos){
 var removeSyncingCard = function(streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
 		var date = streamEvent.dateTime.substring(0, 10);
-		logger.silly(user.username, 'removing syncing card', date);
+		logger.silly(user.username, 'removing syncing card', [date, streamEvent.source]);
 		var condition = {
 			userId: user._id,
 			cardDate: date,
@@ -813,13 +815,14 @@ var removeSyncingCard = function(streamEvent, user, repos){
 			source: streamEvent.source
 		};
 
+		logger.silly(user.username, 'removing syncing card, condition', condition);
 		repos.cards.remove(condition, function(error, response){
 			if(error){
 				logger.error(user.username, 'error removing sync card', [error, streamEvent.source]);
 				reject(error);
 			}
 			else{
-				logger.info(user.username, 'removed cards, count', response.result.n);
+				logger.debug(user.username, 'removed syncing card, count', response.result.n);
 				resolve();
 			}
 		});
@@ -829,7 +832,7 @@ var removeSyncingCard = function(streamEvent, user, repos){
 var addCardsGeneratingCard = function(streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
 		var date = streamEvent.dateTime.substring(0, 10);
-		logger.silly(user.username, 'adding cards generating card', date);
+		logger.silly(user.username, 'adding cards generating card', [date, streamEvent.source]);
 		var card = {};
 		card.userId = user._id;	
 		card.type = "cardsgenerating";
@@ -838,7 +841,8 @@ var addCardsGeneratingCard = function(streamEvent, user, repos){
 		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
 
-		logger.silly(user.username, 'Adding cards generating card, ', [streamEvent.source]);
+		logger.silly(user.username, 'adding cards inserting', card);
+
 		repos.cards.insert(card, function(error, response){
 			if(error){
 				logger.error(user.username, 'error inserting cards generating card', [error, streamEvent.source]);
@@ -846,7 +850,7 @@ var addCardsGeneratingCard = function(streamEvent, user, repos){
 			}
 			else
 			{
-				logger.silly(user.username, 'cards generating card inserted', [streamEvent.source, response.result]);
+				logger.debug(user.username, 'cards generating card inserted', [streamEvent.source, response.result]);
 				resolve();
 			}
 		});
@@ -856,7 +860,7 @@ var addCardsGeneratingCard = function(streamEvent, user, repos){
 var removeCardsGeneratingCard = function(streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
 		var date = streamEvent.dateTime.substring(0, 10);
-		logger.silly(user.username, 'removing cards generating card', date);
+		logger.silly(user.username, 'removing cards generating card', [date, streamEvent.source]);
 		var condition = {
 			userId: user._id,
 			cardDate: date,
@@ -864,13 +868,14 @@ var removeCardsGeneratingCard = function(streamEvent, user, repos){
 			source: streamEvent.source
 		};
 
+		logger.silly(user.username, 'removing cards condition', condition);
 		repos.cards.remove(condition, function(error, response){
 			if(error){
 				logger.error(user.username, 'error removing cards generating card', [error, streamEvent.source]);
 				reject(error);
 			}
 			else{
-				logger.info(user.username, 'removed cards generating card, count', response.result.n);
+				logger.debug(user.username, 'removed cards generating card, count', response.result.n);
 				resolve();
 			}
 		});
@@ -878,11 +883,13 @@ var removeCardsGeneratingCard = function(streamEvent, user, repos){
 };
 
 var processEvent = function(streamEvent, user, repos){
+	logger.silly(user.username, 'processing event');
 	if(_.indexOf(streamEvent.objectTags, 'sync') === -1){
 		return;
 	}
 
 	if(_.indexOf(streamEvent.actionTags, 'start') >= 0){
+		logger.debug(user.username, 'processing sync start');
 		return addSyncingCard(streamEvent, user, repos)
 		.then(function(){
 			return getUserCardCount(user, repos);
@@ -893,12 +900,12 @@ var processEvent = function(streamEvent, user, repos){
 	}
 
 	else if(_.indexOf(streamEvent.actionTags, 'complete') >= 0){
+		logger.debug(user.username, 'processing sync complete, creating cards from schedules');
 		return removeSyncingCard(streamEvent, user, repos)
 		.then(function(){
 			return addCardsGeneratingCard(streamEvent, user, repos);
 		})
 		.then(function(){
-			logger.info(user.username, 'sync complete seen, creating cards from schedules');
 			return processCardSchedules(user, repos, streamEvent);
 		})
 		.then(function(){
