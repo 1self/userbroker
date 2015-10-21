@@ -504,6 +504,58 @@ var blacklist = function(property, rollup){
 	return result;
 };
 
+var getUserCardCount = function(user, repos){
+	return q.Promise(function(resolve, reject){
+		logger.silly(user.username, 'getting card count');
+		var pipeline = [];
+		pipeline.push({
+			$match: {userId: user._id}
+		});
+
+		pipeline.push({ $group: { _id: null, count: { $sum: 1 } } });
+
+		repos.cards.aggregate(pipeline, function(error, response){
+			if(error){
+				logger.error(user.username, 'error getting card count', error);
+				reject(error);
+			}
+			else{
+				var count = response[0] ? response[0].count : 0;
+				logger.debug(user.username, 'number of cards: ', count);
+				resolve(count);
+			}
+		});
+	});
+};
+
+var setUserCardCount = function(user, repos, cardCount){
+	return q.Promise(function(resolve, reject){
+		logger.debug(user.username, 'setting card count ', cardCount);
+		var condition = {
+			_id: user._id
+		};
+
+		var operation = {
+			$set: {cardCount: cardCount}
+		};
+
+		var options = {
+			$multi: false
+		};
+
+		repos.user.update(condition, operation, options, function(error, response){
+			if(error){
+				logger.error(user.username, 'error setting card count on user', error);
+				reject(error);
+			} 
+			else {
+				logger.silly(user.username, 'card count was set on user', response.result);
+				resolve(response);
+			}
+		});
+	});
+};
+
 var createDailyInsightCards = function(user, repos, params){
 	logger.debug(user.username, [params.date , 'creating insights'].join(': '));
 	logger.debug(user.username, 'params passed in are ', params);
@@ -598,58 +650,6 @@ var createDailyInsightCards = function(user, repos, params){
 		return q.all(rollupPromises);
 	};
 
-	var getCardCount = function(){
-		return q.Promise(function(resolve, reject){
-			logger.silly(user.username, 'getting card count');
-			var pipeline = [];
-			pipeline.push({
-				$match: {userId: user._id}
-			});
-
-			pipeline.push({ $group: { _id: null, count: { $sum: 1 } } });
-
-			repos.cards.aggregate(pipeline, function(error, response){
-				if(error){
-					logger.error(user.username, 'error getting card count', error);
-					reject(error);
-				}
-				else{
-					var count = response[0] ? response[0].count : 0;
-					logger.debug(user.username, 'number of cards: ', count);
-					resolve(count);
-				}
-			});
-		});
-	};
-
-	var setUserCardCount = function(cardCount){
-		return q.Promise(function(resolve, reject){
-			logger.debug(user.username, 'setting card count ', cardCount);
-			var condition = {
-				_id: user._id
-			};
-
-			var operation = {
-				$set: {cardCount: cardCount}
-			};
-
-			var options = {
-				$multi: false
-			};
-
-			repos.user.update(condition, operation, options, function(error, response){
-				if(error){
-					logger.error(user.username, 'error setting card count on user', error);
-					reject(error);
-				} 
-				else {
-					logger.silly(user.username, 'card count was set on user', response.result);
-					resolve(response);
-				}
-			});
-		});
-	};
-
 	var finishMessage = [params.date, 'finished creating insights'].join(": ");
 	var logFinished = function(){
 		logger.debug(user.username, finishMessage);
@@ -658,8 +658,8 @@ var createDailyInsightCards = function(user, repos, params){
 	var condition = createDatabaseQuery(params);
 	return getRollupsFromDatabase(condition)
 	.then(generateInsightsFromRollups)
-	.then(getCardCount)
-	.then(setUserCardCount)
+	.then(function(){return getUserCardCount(user, repos);})
+	.then(function(cardCount){return setUserCardCount(user, repos, cardCount);})
 	.then(logFinished)
 	.catch(function(error){
 		logger.error(user.username, 'error occurred while generating insight', error);
@@ -781,7 +781,7 @@ var addSyncingCard = function(streamEvent, user, repos){
 		logger.silly(user.username, 'adding sync card', date);
 		var card = {};
 		card.userId = user._id;	
-		card.type = "syncing";
+		card.type = "datasyncing";
 		card.thumbnailMedia = 'chart.html';
 		card.source = streamEvent.source;
 		card.cardDate = date;
@@ -809,7 +809,7 @@ var removeSyncingCard = function(streamEvent, user, repos){
 		var condition = {
 			userId: user._id,
 			cardDate: date,
-			type: 'syncing',
+			type: 'datasyncing',
 			source: streamEvent.source
 		};
 
@@ -832,7 +832,7 @@ var addCardsGeneratingCard = function(streamEvent, user, repos){
 		logger.silly(user.username, 'adding cards generating card', date);
 		var card = {};
 		card.userId = user._id;	
-		card.type = "generating";
+		card.type = "cardsgenerating";
 		card.thumbnailMedia = 'chart.html';
 		card.source = streamEvent.source;
 		card.cardDate = date;
@@ -860,7 +860,7 @@ var removeCardsGeneratingCard = function(streamEvent, user, repos){
 		var condition = {
 			userId: user._id,
 			cardDate: date,
-			type: 'generating',
+			type: 'cardsgenerating',
 			source: streamEvent.source
 		};
 
@@ -883,7 +883,13 @@ var processEvent = function(streamEvent, user, repos){
 	}
 
 	if(_.indexOf(streamEvent.actionTags, 'start') >= 0){
-		return addSyncingCard(streamEvent, user, repos);
+		return addSyncingCard(streamEvent, user, repos)
+		.then(function(){
+			return getUserCardCount(user, repos);
+		})
+		.then(function(cardCount){
+			return setUserCardCount(user, repos, cardCount);
+		});
 	}
 
 	else if(_.indexOf(streamEvent.actionTags, 'complete') >= 0){
