@@ -898,7 +898,6 @@ var processEvent = function(streamEvent, user, repos){
 			return setUserCardCount(user, repos, cardCount);
 		});
 	}
-
 	else if(_.indexOf(streamEvent.actionTags, 'complete') >= 0){
 		logger.debug(user.username, 'processing sync complete, creating cards from schedules');
 		return removeSyncingCard(streamEvent, user, repos)
@@ -913,9 +912,14 @@ var processEvent = function(streamEvent, user, repos){
 			return removeCardsGeneratingCard(streamEvent, user, repos);
 		});
 	}
+	else if(_.indexOf(streamEvent.actionTags, 'error') >= 0 || _.indexOf(streamEvent.actionTags, 'Error') >= 0 ){
+		logger.error(user.username, 'a sync error was seen');
+		// TODO: notify the user, check for a 401 and ask the user to re-auth
+		return;
+	}
 
 	logger.error(user.username, 'unknown sync type seen', [streamEvent.objectTags, streamEvent.actionTags]);
-	return q.Promise();
+	return;
 };
 
 var getLastReadDate = function(params){
