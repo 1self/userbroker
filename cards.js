@@ -431,7 +431,7 @@ var createBottomInsightForPropery = function(user, rollup, property, repos){
 		logger.silly(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
 
 		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
-			logger.debug(user.username, 'retrieved the bottom10', [condition.objectTags, condition.actionTags, condition.date]);
+			logger.debug(user.username, 'retrieved the bottom10', [condition.$query.objectTags, condition.$query.actionTags, condition.$query.date, propertyPath]);
 
 			if(bottom10.length === 0){
 				logger.silly(user.username, 'nothing in the bottom10, [propertyPath]', propertyPath);
@@ -725,10 +725,9 @@ var processCardSchedules = function(user, repos, streamEvent){
 	
 	var publishCards = function(cardIds){
 		q.Promise(function(resolve, reject){
-			var validCardIds = _(cardIds).flatten().filter(Boolean).value(); // filters out nulls, which are given when a card can't be created for a property
 			var condition = {
 				_id: {
-					$in: validCardIds 
+					$in: cardIds 
 				}
 			};
 
@@ -743,13 +742,12 @@ var processCardSchedules = function(user, repos, streamEvent){
 			};
 
 			repos.cards.update(condition, operation, options, function(error, response){
-				debugger;
 				if(error){
 					reject(error);
 				}
 				else{
 					logger.debug(user.username, 'published cards, cards updated ', response.result.nModified);
-					resolve(validCardIds);
+					resolve(cardIds);
 				}
 			});
 		});
@@ -778,10 +776,11 @@ var processCardSchedules = function(user, repos, streamEvent){
 
 			if(cardSchedule === null){
 				promise = promise.then(function(){
+					var validCardIds = _(createdCardIds).flatten().filter(Boolean).value(); // filters out nulls, which are given when a card can't be created for a property
 					logger.silly(user.username, 'processed card schedules, streamid, schedule count', [condition.streamid, scheduleCount]);
-					logger.debug(user.username, 'publishing cards, count', createdCardIds.length);
-					logger.silly(user.username, 'publishing cards, count', createdCardIds);
-					return publishCards(createdCardIds);
+					logger.debug(user.username, 'publishing cards, count', validCardIds.length);
+					logger.silly(user.username, 'publishing cards, count', validCardIds);
+					return publishCards(validCardIds);
 				});
 
 				promise = promise.then(function(cardIds){
@@ -957,7 +956,7 @@ var processEvent = function(streamEvent, user, repos){
 		});
 	}
 	else if(_.indexOf(streamEvent.actionTags, 'complete') >= 0){
-		logger.debug(user.username, 'processing sync complete, creating cards from schedules');
+		logger.debug(user.username, 'processing sync complete, using card schedules to create cards');
 		return removeSyncingCard(streamEvent, user, repos)
 		.then(function(){
 			return addCardsGeneratingCard(streamEvent, user, repos);
@@ -966,7 +965,7 @@ var processEvent = function(streamEvent, user, repos){
 			return processCardSchedules(user, repos, streamEvent);
 		})
 		.then(function(){
-			logger.info(user.username, 'finished creating card schedules');
+			logger.info(user.username, 'finished processing card schedules');
 			return removeCardsGeneratingCard(streamEvent, user, repos);
 		});
 	}
