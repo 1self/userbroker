@@ -721,37 +721,39 @@ var createCardsForDate = function(user, repos, params){
 	});
 };
 
+var publishCards = function(user, repos, cardIds){
+	return q.Promise(function(resolve, reject){
+		var condition = {
+			_id: {
+				$in: cardIds 
+			}
+		};
+
+		var operation = {
+			$set: {
+				published: true
+			}
+		};
+
+		var options = {
+			multi: true
+		};
+
+		repos.cards.update(condition, operation, options, function(error, response){
+			if(error){
+				reject(error);
+			}
+			else{
+				logger.debug(user.username, 'published cards, cards updated ', response.result.nModified);
+				resolve(cardIds);
+			}
+		});
+	});
+};
+
 var processCardSchedules = function(user, repos, streamEvent){
 	
-	var publishCards = function(cardIds){
-		q.Promise(function(resolve, reject){
-			var condition = {
-				_id: {
-					$in: cardIds 
-				}
-			};
-
-			var operation = {
-				$set: {
-					published: true
-				}
-			};
-
-			var options = {
-				multi: true
-			};
-
-			repos.cards.update(condition, operation, options, function(error, response){
-				if(error){
-					reject(error);
-				}
-				else{
-					logger.debug(user.username, 'published cards, cards updated ', response.result.nModified);
-					resolve(cardIds);
-				}
-			});
-		});
-	};
+	
 
 	return q.Promise(function(resolve, reject){
 		logger.silly(user.username, 'processing card schedules, streamEvent', streamEvent);
@@ -780,7 +782,7 @@ var processCardSchedules = function(user, repos, streamEvent){
 					logger.silly(user.username, 'processed card schedules, streamid, schedule count', [condition.streamid, scheduleCount]);
 					logger.debug(user.username, 'publishing cards, count', validCardIds.length);
 					logger.silly(user.username, 'publishing cards, count', validCardIds);
-					return publishCards(validCardIds);
+					return publishCards(user, repos, validCardIds);
 				});
 
 				promise = promise.then(function(cardIds){
@@ -1170,15 +1172,22 @@ var recreateCardsForTagsAndDateRange = function(user, repos, params){
 
 		var promise = removeExistingCardsRange(user, repos, params);
 		
+		var collectedCardIds = [];
 		dateParams.forEach(function(dateParam){
 			promise = promise.then(function(){
 				return generateCardsForDay(user, repos, dateParam);
+			}).then(function(cardIds){
+				collectedCardIds.push(cardIds);
 			});
 		});
 
 		promise.then(function(){
+			var validCardIds = _(collectedCardIds).flatten().filter(Boolean).value(); // filters out nulls, which are given when a card can't be created for a property
+			logger.debug(user.username, 'publishing cards, count', validCardIds.length);
+			return publishCards(user, repos, validCardIds);
+		}).then(function(cardIds){
 			logger.info(user.username, 'finished recreating cards, params', params);
-			resolve();
+			resolve(cardIds);
 		});
 	});
 };
