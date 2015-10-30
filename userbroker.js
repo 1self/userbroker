@@ -488,6 +488,32 @@ var processUserBrokerChannel = function(message){
 		eventReplayer.replayEvents(repos, lookedUpUser, date, objectTags, actionTags, eventSink);
 	};
 
+	var processEventsReplayForTags = function(){
+		var matches = /^events\/replay\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+
+		var objectTags = matches[1].split(",");
+		var actionTags = matches[2].split(",");
+		logger.info('allusers', 'initiating event replay', {objectTags: objectTags, actionTags: actionTags});
+
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
+		
+		var date = ''; // setting date to an empty string should ensure that all of the events are brough back
+
+		var promise = q();
+		_.forEach(users, function(user){
+			promise = promise.then(function(){
+				return eventReplayer.replayEvents(repos, user, date, objectTags, actionTags, eventSink);
+			});
+		});
+				
+		promise.catch(function(error){
+			logger.error(error);
+		})
+		.done();
+	};
+
 	var processEventsReplayForUserAndMonthAndTags = function(){
 		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
 		var user = matches[1];
@@ -577,6 +603,9 @@ var processUserBrokerChannel = function(message){
 	else if(/^cards\/recreate\/date\/(\d{4}-\d{2}-\d{2})--(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
 		processMessageForRecreate();
 	} 
+	else if(/^events\/replay\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+		processEventsReplayForTags();	
+	}
 	else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
 		processEventReplayForDate();
 	}
