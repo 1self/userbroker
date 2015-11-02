@@ -1081,16 +1081,21 @@ var archive = function(users, repos, params){
 
 var cronDaily = function(users, repos, params){
 	logger.debug('', 'cron daily requested');
+	var promise = q();
 	_.map(users, function(user){
-		archiveUser(user, repos, params)
+		logger.info(user, 'cron daily for user');
+		promise = promise.then(function(){
+			archiveUser(user, repos, params);	
+		})
 		.then(function(){
 			return processCardSchedules(user, repos);
-		})
-		.catch(function(error){
-			logger.error(user.username, 'error while running cron daily, error', error);
-		})
-		.done();
+		});
 	});
+
+	promise.catch(function(error){
+			logger.error('', 'error while running cron daily, error', error);
+	})
+	.done();
 };
 
 var groundsForRejection = function(user, repos, params){
