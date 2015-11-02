@@ -814,7 +814,7 @@ var processCardSchedules = function(user, repos, streamEvent){
 				scheduleCount += cardSchedule.tags.length;
 			}
 
-			logger.silly(user.username, 'creating cards for schedules, scheduleCount', dateParams.length);
+			logger.info(user.username, 'creating cards for schedules, scheduleCount', dateParams.length);
 
 			dateParams.forEach(function(dateParam){
 				promise = promise.then(function(){
@@ -828,7 +828,7 @@ var processCardSchedules = function(user, repos, streamEvent){
 			});
 		});
 
-		logger.info(user.username, 'processing card schedules, count', scheduleCount);
+		
 	});
 };
 
