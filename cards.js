@@ -996,7 +996,7 @@ var getLastReadDate = function(params){
 		pipeline.push({
 			$group: {
 				_id: 0, 
-				maxDate: {$max: {$cond: ["$readInfo.clientReadDate", "$readInfo.clientReadDate", "$cardDate"]}}
+				maxDate: {$max: "$cardDate"}
 			}
 		});
 
