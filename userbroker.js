@@ -514,6 +514,31 @@ var processUserBrokerChannel = function(message){
 		.done();
 	};
 
+	var processEventReplayForObjectTagsActionTagsDate = function(){
+		var matches = /^events\/replay\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
+
+		var date = matches[1];
+		var objectTags = matches[2].split(",");
+		var actionTags = matches[3].split(",");
+		logger.info('allusers', 'initiating event replay', {objectTags: objectTags, actionTags: actionTags, date: date});
+
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
+
+		var promise = q();
+		_.forEach(users, function(user){
+			promise = promise.then(function(){
+				return eventReplayer.replayEvents(repos, user, date, objectTags, actionTags, eventSink);
+			});
+		});
+				
+		promise.catch(function(error){
+			logger.error(error);
+		})
+		.done();
+	};
+
 	var processEventsReplayForUserAndMonthAndTags = function(){
 		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.exec(message);
 		var user = matches[1];
@@ -608,6 +633,9 @@ var processUserBrokerChannel = function(message){
 	}
 	else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
 		processEventReplayForDate();
+	}
+	else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
+		processEventReplayForObjectTagsActionTagsDate();
 	}
 	else if(/^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.test(message)){
 		processEventReplayForUserAndYear();
