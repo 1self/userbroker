@@ -3,6 +3,7 @@ var _ = require('lodash');
 var moment = require('moment');
 var q = require('q');
 var logger = require('winston');
+var utils = require('./userDailyAggregationUtils.js');
 
 q.longStackSupport = true;
 
@@ -116,30 +117,14 @@ var processEvent = function(streamEvent, user, repos){
 	var explodedLabels = [];
 	var measures = {};
 
-	var createKey = function(property, second){
-		var result = [property, second.replace(/\.|\[|\]/g,function(match){
-			if(match === '.'){
-				return '^';
-			}
-			else if (match === '['){
-				return '(';
-			}
-			else if (match === ']'){
-				return ')';
-			}
-
-			throw 'matched unknown string';
-		})].join(MEASURE_DELIMITER);
-
-		return result;
-	};
+	
 
 	var explodeArray = function(e, property){
 		if(_.isString(e) === false){
 			return;
 		}
 
-		var key = createKey(property, e);
+		var key = utils.createKey(property, e, MEASURE_DELIMITER);
 		explodedLabels.push(key);
 	};
 
@@ -152,7 +137,7 @@ var processEvent = function(streamEvent, user, repos){
 					continue;
 				}
 
-				var key = createKey(property, propertyValue);
+				var key = utils.createKey(property, propertyValue, MEASURE_DELIMITER);
 				explodedLabels.push(key);
 			}
 			else if(_.isArray(propertyValue)){
