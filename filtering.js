@@ -1,9 +1,13 @@
 var _ = require('lodash');
 
-exports.tagsAllowed = function(objectTags, actionTags){
+exports.generateCardsForRollupProperty = function(objectTags, actionTags, property){
 	var result = true;
-	if(_.indexOf(objectTags, 'browse') >= 0){
+	if(_.intersection(objectTags, ['twitter', 'stackoverflow', 'instagram', 'foursquare', 'hackernews']).length > 0){
 		result = false;
 	}
-	return true;
+	else if(_.intersection(actionTags, ['browse']).length > 0 && property === '__count__'){
+		result = false;
+	}
+
+	return result;
 }

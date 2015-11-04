@@ -3,6 +3,7 @@ var _ = require('lodash');
 var moment = require('moment');
 var q = require('q');
 var logger = require('winston');
+var filtering = require('./filtering.js');
 
 q.longStackSupport = true;
 
@@ -497,16 +498,6 @@ var createBottomInsightForPropery = function(user, rollup, property, repos){
 	});
 };
 
-var blacklist = function(property, rollup){
-	var result = false;
-
-	if(_.indexOf(rollup.actionTags, 'browse') !== -1 && property === '__count__'){
-		result = true;
-	}
-
-	return result;
-};
-
 var getUserCardCount = function(user, repos){
 	return q.Promise(function(resolve, reject){
 		logger.silly(user.username, 'getting card count');
@@ -623,7 +614,7 @@ var generateCardsForDay = function(user, repos, params){
 				nextPath.push(property);
 				var propertyVal = properties[property];
 				if(_.isNumber(propertyVal)){
-					if(blacklist(property, rollup) === false){
+					if(filtering.generateCardsForRollupProperty(rollup.objectTags, rollup.actionTags, property)){
 						var top10Promise = createTopInsightForProperty(user, rollup, nextPath, repos);
 						var bottom10Promise = createBottomInsightForPropery(user, rollup, nextPath, repos);
 
