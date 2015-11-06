@@ -33,6 +33,7 @@ MongoClient.connect(quantifiedDevUrl, function(err, qdDb) {
 	}
 
 	broker.setUserRepo(qdDb.collection('users'));
+	broker.setUserTagIndexesRepo(qdDb.collection('userTagIndexes'));
 	broker.setUserRollupRepo(qdDb.collection('userRollupByDay'));
 	broker.setAppBrokerRepo(qdDb.collection('appBroker'));
 	broker.setCardsRepo(qdDb.collection('cards'));

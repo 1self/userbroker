@@ -71,6 +71,35 @@ var setLogger = function (newLogger){
 
 };
 
+var updateUserTagIndex = function(user, streamEvent, objectTagsKey, actionTagsKey, objectTags, actionTags, repos){
+	var condition = {
+		userId: user._id,
+		streamId: streamEvent.streamid,
+		tagKey: objectTagsKey + '/' + actionTagsKey,
+		objectTags: objectTags,
+		actionTags: actionTags,
+	};
+
+	var operation = {
+		$inc: {count: 1}
+	};
+
+	var options = {
+		upsert: true
+	};
+
+	// fire and forget on the index, not meant to be a perfect record, just to help
+	// with know when to do different things for the user
+	repos.userTagIndexes.update(condition, operation, options, function(error, response){
+		if(error){
+			logger.error(user.username, 'failed to update index, error', error);
+		}
+		else{
+			logger.silly(user.username, 'updated index ', response.result.nModified);
+		}
+	});
+};
+
 var processEvent = function(streamEvent, user, repos){
 	logger.debug(user.username, 'processing event', streamEvent);
 
@@ -101,7 +130,12 @@ var processEvent = function(streamEvent, user, repos){
 	condition.objectTags = condition.objectTags.map(function(tag){return tag.toLowerCase();});
 	condition.actionTags = _.sortBy(streamEvent.actionTags, function(tag){return tag.toLowerCase();});
 	condition.actionTags = condition.actionTags.map(function(tag){return tag.toLowerCase();});
-	var conditionKey = [condition.userId + '', condition.objectTags.join(','), condition.actionTags.join(',')].join('/');
+
+	var objectTagsKey = condition.objectTags.join(',');
+	var actionTagsKey = condition.actionTags.join(',');
+	var key = [condition.userId + '', objectTagsKey, actionTagsKey].join('/');
+
+	updateUserTagIndex(user, streamEvent, objectTagsKey, actionTagsKey, condition.objectTags, condition.actionTags, repos);
 
 	if(_.indexOf(condition.objectTags, 'sync') >= 0){
 		logger.debug(user.username, "ignoring sync event");
@@ -222,7 +256,7 @@ var processEvent = function(streamEvent, user, repos){
 	})
 	.flatten()
 	.forEach(function(measure){
-                logger.silly(user.username, "adding measure, [measure]", measure);
+        logger.silly(user.username, "adding measure, [measure]", measure);
 		var dayDate = measure.date.substring(0, 10);
 		var increment = "properties." + measure.key + "." + measure.date.substring(11, 13);
 		var incrementCounts = "count." + measure.key;
@@ -250,7 +284,7 @@ var processEvent = function(streamEvent, user, repos){
 
 		operations[dayDate]['$inc'][increment] = measure.value;
 		operations[dayDate]['$inc'][incrementSums] += measure.value;
-		operations[dayDate]['$inc'][incrementCounts] += 1;
+		operations[dayDate]['$inc'][incrementCounts] += 1;	
 	})
 	.value();
 
@@ -260,7 +294,7 @@ var processEvent = function(streamEvent, user, repos){
 
 	_.forEach(operations, function(operation, date){
 		condition.date = date;
-		condition.key = [conditionKey, date].join('/');
+		condition.key = [key, date].join('/');
 		logger.silly('calling insert');
 		logger.silly('condition', JSON.stringify(condition));
 		logger.silly('operation', JSON.stringify(operation));

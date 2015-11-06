@@ -719,6 +719,10 @@ var setUserRepo = function(userRepo){
 	repos.user = userRepo;
 };
 
+var setUserTagIndexesRepo = function(repo){
+	repos.userTagIndexes = repo;
+};
+
 var setCardsRepo = function(repo){
 	repos.cards = repo;
 };
@@ -756,6 +760,7 @@ module.exports.subscribeMessage = subscribeMessage;
 module.exports.loadUsers = loadUsers;
 module.exports.setLogger = setLogger;
 module.exports.setUserRepo = setUserRepo;
+module.exports.setUserTagIndexesRepo = setUserTagIndexesRepo;
 module.exports.setUserRollupRepo = setUserRollupRepo;
 module.exports.setBulletinRepo = setBulletinRepo;
 module.exports.setAppBrokerRepo = setAppBrokerRepo;
