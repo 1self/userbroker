@@ -830,7 +830,8 @@ var isFirstSync = function(streamEvent, user, repos){
 		var condition = {
 			userId: user._id,
 			streamId: streamEvent.streamid,
-			actionTags: 'sync'
+			objectTags: 'sync',
+			actionTags: 'complete'
 		};
 
 		repos.userTagIndexes.findOne(condition, function(error, doc){
@@ -845,10 +846,6 @@ var isFirstSync = function(streamEvent, user, repos){
 			if(doc === null){
 				resolve(true);
 				return;
-			}
-
-			if(doc.count <= 1){
-				resolve(true);
 			}
 			else{
 				resolve(false);
