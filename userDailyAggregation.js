@@ -68,7 +68,6 @@ var setLogger = function (newLogger){
 			newLogger.silly('userDailyAggregation: %s: %s', key, message);
 		}
 	};
-
 };
 
 var updateUserTagIndex = function(user, streamEvent, objectTagsKey, actionTagsKey, objectTags, actionTags, repos){
