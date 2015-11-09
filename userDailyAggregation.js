@@ -255,35 +255,63 @@ var processEvent = function(streamEvent, user, repos){
 	})
 	.flatten()
 	.forEach(function(measure){
-        logger.silly(user.username, "adding measure, [measure]", measure);
 		var dayDate = measure.date.substring(0, 10);
-		var increment = "properties." + measure.key + "." + measure.date.substring(11, 13);
-		var incrementCounts = "count." + measure.key;
-		var incrementSums = "sum." + measure.key;
+		
+		if(/^latest\-/.test(measure.key)){
+			logger.silly(user.username, "adding measure, [measure]", measure);
+			var max = "properties." + measure.key + "." + measure.date.substring(11, 13);
+			var maxSums = "sum." + measure.key;
 
-		if(operations[dayDate] === undefined){
-			operations[dayDate] = {};
+			if(operations[dayDate] === undefined){
+				operations[dayDate] = {};
+			}
+
+			if(operations[dayDate]['$max'] === undefined){
+				operations[dayDate]['$max'] = {};
+			}
+
+			if(operations[dayDate]['$max'][max] === undefined){
+				operations[dayDate]['$max'][max] = 0;
+			}
+
+			if(operations[dayDate]['$max'][maxSums] === undefined){
+				operations[dayDate]['$max'][maxSums] = 0;
+			}
+
+			operations[dayDate]['$max'][max] = measure.value;
+			operations[dayDate]['$max'][maxSums] += measure.value;
 		}
+		else{
+			logger.silly(user.username, "adding measure, [measure]", measure);
+			var increment = "properties." + measure.key + "." + measure.date.substring(11, 13);
+			var incrementCounts = "count." + measure.key;
+			var incrementSums = "sum." + measure.key;
 
-		if(operations[dayDate]['$inc'] === undefined){
-			operations[dayDate]['$inc'] = {};
+			if(operations[dayDate] === undefined){
+				operations[dayDate] = {};
+			}
+
+			if(operations[dayDate]['$inc'] === undefined){
+				operations[dayDate]['$inc'] = {};
+			}
+
+			if(operations[dayDate]['$inc'][increment] === undefined){
+				operations[dayDate]['$inc'][increment] = 0;
+			}
+
+			if(operations[dayDate]['$inc'][incrementSums] === undefined){
+				operations[dayDate]['$inc'][incrementSums] = 0;
+			}
+
+			if(operations[dayDate]['$inc'][incrementCounts] === undefined){
+				operations[dayDate]['$inc'][incrementCounts] = 0;
+			}
+
+			operations[dayDate]['$inc'][increment] = measure.value;
+			operations[dayDate]['$inc'][incrementSums] += measure.value;
+			operations[dayDate]['$inc'][incrementCounts] += 1;	
 		}
-
-		if(operations[dayDate]['$inc'][increment] === undefined){
-			operations[dayDate]['$inc'][increment] = 0;
-		}
-
-		if(operations[dayDate]['$inc'][incrementSums] === undefined){
-			operations[dayDate]['$inc'][incrementSums] = 0;
-		}
-
-		if(operations[dayDate]['$inc'][incrementCounts] === undefined){
-			operations[dayDate]['$inc'][incrementCounts] = 0;
-		}
-
-		operations[dayDate]['$inc'][increment] = measure.value;
-		operations[dayDate]['$inc'][incrementSums] += measure.value;
-		operations[dayDate]['$inc'][incrementCounts] += 1;	
+        
 	})
 	.value();
 
