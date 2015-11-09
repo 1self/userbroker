@@ -76,7 +76,7 @@ var updateUserTagIndex = function(user, streamEvent, objectTagsKey, actionTagsKe
 		streamId: streamEvent.streamid,
 		tagKey: objectTagsKey + '/' + actionTagsKey,
 		objectTags: objectTags,
-		actionTags: actionTags,
+		actionTags: actionTags,	
 	};
 
 	var operation = {
@@ -132,7 +132,7 @@ var processEvent = function(streamEvent, user, repos){
 
 	var objectTagsKey = condition.objectTags.join(',');
 	var actionTagsKey = condition.actionTags.join(',');
-	var key = [condition.userId + '', objectTagsKey, actionTagsKey].join('/');
+	var conditionKey = [condition.userId + '', objectTagsKey, actionTagsKey].join('/');
 
 	updateUserTagIndex(user, streamEvent, objectTagsKey, actionTagsKey, condition.objectTags, condition.actionTags, repos);
 
@@ -293,7 +293,7 @@ var processEvent = function(streamEvent, user, repos){
 
 	_.forEach(operations, function(operation, date){
 		condition.date = date;
-		condition.key = [key, date].join('/');
+		condition.key = [conditionKey, date].join('/');
 		logger.silly('calling insert');
 		logger.silly('condition', JSON.stringify(condition));
 		logger.silly('operation', JSON.stringify(operation));
