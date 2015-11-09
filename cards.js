@@ -935,6 +935,18 @@ var removeCardsGeneratingCard = function(streamEvent, user, repos){
 	});
 };
 
+var addFirstSync = function(user, streamEvent){
+	if(user.firstSyncs === undefined){
+		user.firstSyncs = {};
+	}
+
+	user.firstSyncs[streamEvent.streamid] = true;
+};
+
+var removeFirstSync = function(user, streamEvent){
+	delete user.firstSyncs[streamEvent.streamid];
+};
+
 var processEvent = function(streamEvent, user, repos){
 	logger.silly(user.username, 'processing event');
 	if(_.indexOf(streamEvent.objectTags, 'sync') === -1){
@@ -943,9 +955,10 @@ var processEvent = function(streamEvent, user, repos){
 
 	if(_.indexOf(streamEvent.actionTags, 'start') >= 0){
 		logger.debug(user.username, 'processing sync start');
-		return utils.isFirstSync(streamEvent, user, repos)
+		return utils.isFirstSync(logger, streamEvent, user, repos)
 		.then(function(isFirstSync){
 			if(isFirstSync){
+				addFirstSync(user, streamEvent);
 				return addSyncingCard(streamEvent, user, repos);
 			}
 			else{
@@ -962,11 +975,9 @@ var processEvent = function(streamEvent, user, repos){
 	else if(_.indexOf(streamEvent.actionTags, 'complete') >= 0){
 		logger.debug(user.username, 'processing sync complete, using card schedules to create cards');
 		return removeSyncingCard(streamEvent, user, repos)
-		.then(function(){
-			return utils.isFirstSync(streamEvent, user, repos);
-		})
-		.then(function(isFirstSync){
-			if(isFirstSync){
+		.then(function(){	
+			if(user.firstSyncs[streamEvent.streamid]){
+				removeFirstSync(user, streamEvent);
 				return addCardsGeneratingCard(streamEvent, user, repos);
 			}
 			else{
