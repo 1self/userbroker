@@ -751,13 +751,19 @@ var processCardSchedules = function(user, repos, streamEvent){
 		logger.silly(user.username, 'processing card schedules, streamEvent', streamEvent);
 		var promise = q();
 
-		var condition = {
+		var condition = {};
+
+		condition.$query = {
 			userId: user._id
 		};
 
 		if(streamEvent && streamEvent.streamid){
-			condition.streamid = streamEvent.streamid;
+			condition.$query.streamid = streamEvent.streamid;
 		}
+
+		condition.$sort = {
+			date: 1
+		};
 
 		var scheduleCount = 0;
 		var createdCardIds = [];
@@ -771,6 +777,7 @@ var processCardSchedules = function(user, repos, streamEvent){
 			if(cardSchedule === null){
 				promise = promise.then(function(){
 					var validCardIds = _(createdCardIds).flatten().filter(Boolean).value(); // filters out nulls, which are given when a card can't be created for a property
+					logger.info(user.username, 'processed schedules', {count: scheduleCount});
 					logger.silly(user.username, 'processed card schedules, streamid, schedule count', [condition.streamid, scheduleCount]);
 					logger.debug(user.username, 'publishing cards, count', validCardIds.length);
 					logger.silly(user.username, 'publishing cards, count', validCardIds);
@@ -803,10 +810,10 @@ var processCardSchedules = function(user, repos, streamEvent){
 			});
 
 			if(cardSchedule.tags){
-				scheduleCount += cardSchedule.tags.length;
+				scheduleCount += _.keys(cardSchedule.tags).length;
 			}
 
-			logger.info(user.username, 'creating cards for schedules, scheduleCount', dateParams.length);
+			logger.silly(user.username, 'creating cards for schedules, scheduleCount', dateParams.length);
 
 			dateParams.forEach(function(dateParam){
 				promise = promise.then(function(){
