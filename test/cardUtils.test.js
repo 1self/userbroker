@@ -62,3 +62,20 @@ describe('isFirstSync', function() {
             });
     });
 });
+
+describe('getSortedUsers', function() {
+    it('sorts', function() {
+        var users = [
+        	{username: "zzz"},
+        	{username: "qqq"},
+        	{username: "hhh"},
+        	{username: "aaa"},
+        ];
+
+        var sorted = utils.getSortedUsers(users).value();
+        assert(sorted[0].username === 'aaa');
+        assert(sorted[1].username === 'hhh');
+        assert(sorted[2].username === 'qqq');
+        assert(sorted[3].username === 'zzz');
+    });
+});

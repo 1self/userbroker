@@ -13,6 +13,7 @@ var moment = require('moment');
 var q = require('q');
 require('twix'); // moment plugin
 var conceal = require('concealotron');
+var request = require('request');
 
 winston.level = 'info';
 winston.info('LOGGINGDIR: ' + process.env.LOGGINGDIR);
@@ -25,6 +26,8 @@ winston.error("Errors will be logged here");
 winston.warn("Warns will be logged here");
 winston.info("Info will be logged here");
 winston.debug("Debug will be logged here");
+
+var slackChannel = process.env.SLACKCHANNEL;
 
 process.on('uncaughtException', function(err) {
   winston.error('Caught exception: ' + err);
@@ -194,6 +197,8 @@ var processUserAdded = function(userEvent, userRepo){
 	var condition = {
 		username: userEvent.username
 	};
+
+
 
 	// Now go and get the whole of the user from the repo
 	userRepo.findOne(condition, function(error, user){

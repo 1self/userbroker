@@ -1,5 +1,6 @@
 'use strict';
 var q = require('q');
+var _ = require('lodash');
 
 exports.isFirstSync = function(logger, streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
@@ -30,4 +31,9 @@ exports.isFirstSync = function(logger, streamEvent, user, repos){
 			}
 		});
 	});
+};
+
+exports.getSortedUsers = function(users){
+	return _(users)
+	.sortBy('username');
 };

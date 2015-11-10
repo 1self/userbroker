@@ -1,7 +1,6 @@
 'use strict';
 var _ = require('lodash');
 var logger = require('winston');
-var filtering = require('./filtering.js');
 
 // Set default node environment to development
 console.log(process === undefined);

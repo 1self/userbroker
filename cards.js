@@ -1103,8 +1103,9 @@ var archive = function(users, repos, params){
 var cronDaily = function(users, repos, params){
 	logger.debug('', 'cron daily requested');
 	var promise = q();
-	_.map(users, function(user){
-		logger.info(user, 'cron daily for user');
+	
+	utils.getSortedUsers(users).value().forEach(function(user){
+		logger.info(user.username, 'cron daily for user');
 		promise = promise.then(function(){
 			archiveUser(user, repos, params);	
 		})
