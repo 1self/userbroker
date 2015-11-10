@@ -13,21 +13,23 @@ var moment = require('moment');
 var q = require('q');
 require('twix'); // moment plugin
 var conceal = require('concealotron');
-var request = require('request');
+//var request = require('request');
 
 winston.level = 'info';
 winston.info('LOGGINGDIR: ' + process.env.LOGGINGDIR);
 assert(process.env.LOGGINGDIR !== undefined);
 var loggingLocation = path.join(process.env.LOGGINGDIR, 'userbroker.log');
+var errorLog = path.join(process.env.LOGGINGDIR, 'userbroker.error.log');
 winston.info('Setting up logging to ' + loggingLocation);
 winston.add(winston.transports.File, { filename: loggingLocation, level: 'debug', json: false, prettyPrint: false });
+winston.add(winston.transports.File, { name: 'file#error', filename: errorLog, level: 'error', json: false, prettyPrint: false });
 winston.info('starting...');	
 winston.error("Errors will be logged here");
 winston.warn("Warns will be logged here");
 winston.info("Info will be logged here");
 winston.debug("Debug will be logged here");
 
-var slackChannel = process.env.SLACKCHANNEL;
+//var slackChannel = process.env.SLACKCHANNEL;
 
 process.on('uncaughtException', function(err) {
   winston.error('Caught exception: ' + err);
@@ -594,15 +596,15 @@ var processUserBrokerChannel = function(message){
 		};
 		logger.info(message, 'requesting archive for ', params);
 		cards.archive(users, repos, params);
-	}
+	};
 
 	var processArchiveCards = function(message){
 		logger.info(message, 'requesting archive');
 		var params = {
 			date: yesterday()
-		}
+		};
 		cards.archive(users, repos, params);
-	}
+	};
 
 	if(message === 'bulletin'){
 		logger.info(message, 'asking processor to send bulletin to users');
