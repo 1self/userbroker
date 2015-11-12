@@ -345,9 +345,11 @@ var createTopInsightForProperty = function(user, rollup, property, repos){
 			sum: true
 		};
 
+		projection[propertyPath] = true;
+
 		logger.silly(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
 
-		repos.userRollupByDay.find(condition).toArray(function(error, top10){
+		repos.userRollupByDay.find(condition, projection).toArray(function(error, top10){
 			logger.silly(user.username, 'retrieved the top10');
 
 			rollup.value = _.get(rollup, propertyPath);
@@ -430,9 +432,11 @@ var createBottomInsightForPropery = function(user, rollup, property, repos){
 			sum: true
 		};
 
+		projection[propertyPath] = true;
+
 		logger.silly(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
 
-		repos.userRollupByDay.find(condition).limit(10).toArray(function(error, bottom10){
+		repos.userRollupByDay.find(condition, projection).limit(10).toArray(function(error, bottom10){
 			logger.debug(user.username, 'retrieved the bottom10', [condition.$query.objectTags, condition.$query.actionTags, condition.$query.date, propertyPath]);
 
 			if(bottom10.length === 0){
