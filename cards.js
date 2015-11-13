@@ -327,41 +327,66 @@ var createTopInsightForProperty = function(user, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
 		var propertyPath = property.join(".");
 		logger.silly([user.username, rollup.date].join(':'), 'analyzing top10', [propertyPath]);
-		var condition = {
-			$query: {
-				userId: rollup.userId,
-				actionTags: rollup.actionTags,
-				objectTags: rollup.objectTags,
-				date: {$lt: rollup.date}
-			},
-			$orderby: {}
+
+		var pipeline = [];
+
+		var match = {$match: {
+    			userId: rollup.userId,
+    			objectTags: rollup.objectTags,
+    			actionTags: rollup.actionTags,
+    			date: {$lt: rollup.date}
+    		}
+    	};
+    	match.$match[propertyPath] = {$exists: true};
+		pipeline.push(match);
+
+		var sort = {$sort: {}};
+		sort.$sort[propertyPath] = -1;
+		pipeline.push(sort);
+
+		pipeline.push({$limit: 10});
+
+		var project = {};
+		project.$project = {
+			value: '$' + propertyPath
 		};
+		pipeline.push(project);
 
-		condition.$query[propertyPath] = {$exists: true};
-		condition.$orderby[propertyPath] = -1;
+		// var condition = {
+		// 	$query: {
+		// 		userId: rollup.userId,
+		// 		actionTags: rollup.actionTags,
+		// 		objectTags: rollup.objectTags,
+		// 		date: {$lt: rollup.date}
+		// 	},
+		// 	$orderby: {}
+		// };
 
-		var projection = {
-			date: true,
-			sum: true
-		};
+		// condition.$query[propertyPath] = {$exists: true};
+		// condition.$orderby[propertyPath] = -1;
 
-		projection[propertyPath] = true;
+		// var projection = {
+		// 	date: true,
+		// 	sum: true
+		// };
 
-		logger.silly(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
+		// projection[propertyPath] = true;
 
-		repos.userRollupByDay.find(condition, projection).toArray(function(error, top10){
+		//logger.silly(user.username, 'retrieving top10 days, condition, projection: ', [condition, projection]);
+
+		repos.userRollupByDay.aggregate(pipeline).toArray(function(error, top10){
 			logger.silly(user.username, 'retrieved the top10');
 
 			rollup.value = _.get(rollup, propertyPath);
 			
-			var sum = _.sum(top10, propertyPath);
+			var sum = _.sum(top10, 'value');
 			var mean = (sum + rollup.value)  / (top10.length + 1);
 			var rollupVariance = rollup.value - mean;
 			var rollupVarianceSq = rollupVariance * rollupVariance;
 			var sumSquares = rollupVarianceSq;
 
 			sumSquares += _.reduce(top10, function(total, item){
-				var variance = _.get(item, propertyPath) - mean;
+				var variance = item.value - mean;
 				var varianceSq = variance * variance;
 				total += varianceSq;
 				if(isNaN(total)){
@@ -386,7 +411,7 @@ var createTopInsightForProperty = function(user, rollup, property, repos){
 			rollup.propertyName = property.slice(-1).concat(property.slice(0, -1)).join('.');
 
 			var top10Index = _.sortedLastIndex(top10, rollup, function(r){
-				return -(_.get(r, propertyPath));
+				return -(r.value);
 			});
 
 			if(top10Index >= 3){
