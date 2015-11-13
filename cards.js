@@ -376,6 +376,11 @@ var createTopInsightForProperty = function(user, rollup, property, repos){
 
 		repos.userRollupByDay.aggregate(pipeline).toArray(function(error, top10){
 			logger.silly(user.username, 'retrieved the top10');
+			if(!top10){
+				logger.error(user.username, 'mismatch between schedule and rollup', {aTags: rollup.actionTags, oTags: rollup.objectTags, propertyPath: propertyPath});
+				resolve(null);
+				return;
+			}
 
 			rollup.value = _.get(rollup, propertyPath);
 			
@@ -439,30 +444,37 @@ var createBottomInsightForPropery = function(user, rollup, property, repos){
 	return q.Promise(function(resolve, reject){
 		var propertyPath = property.join(".");
 		logger.silly([user.username, rollup.date].join(':'), 'analyzing bottom10, [propertyPath]', [propertyPath]);
-		var condition = {
-			$query: {
-				userId: rollup.userId,
-				actionTags: rollup.actionTags,
-				objectTags: rollup.objectTags,
-				date: {$lt: rollup.date}
-			},
-			$orderby: {}
+		var pipeline = [];
+
+		var match = {$match: {
+    			userId: rollup.userId,
+    			objectTags: rollup.objectTags,
+    			actionTags: rollup.actionTags,
+    			date: {$lt: rollup.date}
+    		}
+    	};
+    	match.$match[propertyPath] = {$exists: true};
+		pipeline.push(match);
+
+		var sort = {$sort: {}};
+		sort.$sort[propertyPath] = 1;
+		pipeline.push(sort);
+
+		pipeline.push({$limit: 10});
+
+		var project = {};
+		project.$project = {
+			value: '$' + propertyPath
 		};
+		pipeline.push(project);
 
-		condition.$query[propertyPath] = {$exists: true};
-		condition.$orderby[propertyPath] = 1;
-
-		var projection = {
-			date: true,
-			sum: true
-		};
-
-		projection[propertyPath] = true;
-
-		logger.silly(user.username, 'retrieving bottom10 days, condition, projection: ', [condition, projection]);
-
-		repos.userRollupByDay.find(condition, projection).limit(10).toArray(function(error, bottom10){
-			logger.debug(user.username, 'retrieved the bottom10', [condition.$query.objectTags, condition.$query.actionTags, condition.$query.date, propertyPath]);
+		repos.userRollupByDay.aggregate(pipeline).limit(10).toArray(function(error, bottom10){
+			logger.debug(user.username, 'retrieved the bottom10', [rollup.objectTags, rollup.actionTags, rollup.date, propertyPath]);
+			if(bottom10 === undefined){
+				logger.error(user.username,'mismatch between schedule and rollup', {oTags: rollup.objectTags, aTags: rollup.actionTags, propertyPath: propertyPath});
+				resolve(null);
+				return;
+            }
 
 			if(bottom10.length === 0){
 				logger.silly(user.username, 'nothing in the bottom10, [propertyPath]', propertyPath);
@@ -471,14 +483,14 @@ var createBottomInsightForPropery = function(user, rollup, property, repos){
 			}
 
 			rollup.value = _.get(rollup, propertyPath);
-			var sum = _.sum(bottom10, propertyPath);
+			var sum = _.sum(bottom10, 'value');
 			var mean = (sum + rollup.value)  / (bottom10.length + 1);
 			var rollupVariance = rollup.value - mean;
 			var rollupVarianceSq = rollupVariance * rollupVariance;
 			var sumSquares = rollupVarianceSq;
 
 			sumSquares += _.reduce(bottom10, function(total, item){
-				var variance = _.get(item, propertyPath) - mean;
+				var variance = item.value - mean;
 				var varianceSq = variance * variance;
 				total += varianceSq;
 				if(isNaN(total)){
@@ -505,7 +517,7 @@ var createBottomInsightForPropery = function(user, rollup, property, repos){
 			rollup.propertyName = property.slice(-1).concat(property.slice(0, -1)).join('.');
 
 			var bottom10Index = _.sortedLastIndex(bottom10, rollup, function(r){
-				return _.get(r, propertyPath);
+				return r.value;
 			});
 
 			if(bottom10Index >= 1){
@@ -732,7 +744,7 @@ var createCardsForDate = function(user, repos, params){
 			return generateCardsForDay(user, repos, params);
 		})
 		.then(function(cardIds){
-			logger.debug(user.username, params.date + ': cards: finished, params, cardIds count', [params, cardIds.length]);
+			logger.debug(user.username, params.date + ': cards: finished, params, cardIds count', [params, cardIds ? cardIds.length : 0]);
 			resolve(cardIds);
 		})
 		.catch(function(error){
