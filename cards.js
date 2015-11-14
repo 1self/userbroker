@@ -377,7 +377,7 @@ var createTopInsightForProperty = function(user, rollup, property, repos){
 		repos.userRollupByDay.aggregate(pipeline).toArray(function(error, top10){
 			logger.silly(user.username, 'retrieved the top10');
 			if(!top10){
-				logger.error(user.username, 'mismatch between schedule and rollup', {aTags: rollup.actionTags, oTags: rollup.objectTags, propertyPath: propertyPath});
+				logger.warn(user.username, 'mismatch between schedule and rollup', {aTags: rollup.actionTags, oTags: rollup.objectTags, propertyPath: propertyPath});
 				resolve(null);
 				return;
 			}
@@ -471,7 +471,7 @@ var createBottomInsightForPropery = function(user, rollup, property, repos){
 		repos.userRollupByDay.aggregate(pipeline).limit(10).toArray(function(error, bottom10){
 			logger.debug(user.username, 'retrieved the bottom10', [rollup.objectTags, rollup.actionTags, rollup.date, propertyPath]);
 			if(bottom10 === undefined){
-				logger.error(user.username,'mismatch between schedule and rollup', {oTags: rollup.objectTags, aTags: rollup.actionTags, propertyPath: propertyPath});
+				logger.warn(user.username,'mismatch between schedule and rollup', {oTags: rollup.objectTags, aTags: rollup.actionTags, propertyPath: propertyPath});
 				resolve(null);
 				return;
             }

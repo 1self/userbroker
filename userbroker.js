@@ -15,14 +15,16 @@ require('twix'); // moment plugin
 var conceal = require('concealotron');
 //var request = require('request');
 
-winston.level = 'info';
+winston.level = 'error';
 winston.info('LOGGINGDIR: ' + process.env.LOGGINGDIR);
 assert(process.env.LOGGINGDIR !== undefined);
 var loggingLocation = path.join(process.env.LOGGINGDIR, 'userbroker.log');
 var errorLog = path.join(process.env.LOGGINGDIR, 'userbroker.error.log');
+var warnLog = path.join(process.env.LOGGINGDIR, 'userbroker.warn.log');
 winston.info('Setting up logging to ' + loggingLocation);
 winston.add(winston.transports.File, { filename: loggingLocation, level: 'debug', json: false, prettyPrint: false });
 winston.add(winston.transports.File, { name: 'file#error', filename: errorLog, level: 'error', json: false, prettyPrint: false });
+winston.add(winston.transports.File, { name: 'file#warn', filename: warnLog, level: 'warn', json: false, prettyPrint: false });
 winston.info('starting...');	
 winston.error("Errors will be logged here");
 winston.warn("Warns will be logged here");
