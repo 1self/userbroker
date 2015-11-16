@@ -15,10 +15,22 @@ describe('tag filtering', function () {
     assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, '__count__') === false);
   });
 
-  it('prevents twitter', function () {
+  it('allows twitter', function () {
     var objectTags = ['internet', 'social-network', 'twitter', 'social-graph', 'inbound', 'follower'];
     var actionTags = ['sample'];
-    assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, 'property') === false);
+    assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, 'property') === true);
+  });
+
+  it('prevents twitter following sample with inbuilt count', function () {
+    var objectTags = ['twitter', 'social-network', 'outbound', 'following'];
+    var actionTags = ['sample'];
+    assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, '__count__') === false);
+  });
+
+  it('prevents twitter follower sample with inbuilt count', function () {
+    var objectTags = ['twitter', 'social-network', 'inbound', 'following'];
+    var actionTags = ['sample'];
+    assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, '__count__') === false);
   });
 
   it('prevents stackoverflow', function () {

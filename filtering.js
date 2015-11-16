@@ -8,6 +8,9 @@ exports.generateCardsForRollupProperty = function(objectTags, actionTags, proper
 	else if(_.intersection(actionTags, ['browse']).length > 0 && property === '__count__'){
 		result = false;
 	}
+	else if(_.intersection(actionTags, ['sample']).length > 0 && _.intersection(objectTags, ['twitter', 'social-network', 'outbound', 'following']) && property === '__count__'){
+		result = false;
+	}
 
 	return result;
 };
