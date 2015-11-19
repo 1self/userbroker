@@ -16,43 +16,43 @@ describe('tag filtering', function () {
   });
 
   it('allows twitter', function () {
-    var objectTags = ['internet', 'social-network', 'twitter', 'social-graph', 'inbound', 'follower'];
+    var objectTags = ['internet', 'social-graph', 'twitter', 'social-graph', 'inbound', 'follower'];
     var actionTags = ['sample'];
     assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, 'property') === true);
   });
 
   it('prevents twitter following sample with inbuilt count', function () {
-    var objectTags = ['twitter', 'social-network', 'outbound', 'following'];
+    var objectTags = ['twitter', 'social-graph', 'outbound', 'following'];
     var actionTags = ['sample'];
     assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, '__count__') === false);
   });
 
   it('prevents twitter follower sample with inbuilt count', function () {
-    var objectTags = ['twitter', 'social-network', 'inbound', 'following'];
+    var objectTags = ['twitter', 'social-graph', 'inbound', 'following'];
     var actionTags = ['sample'];
     assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, '__count__') === false);
   });
 
   it('prevents stackoverflow', function () {
-    var objectTags = ['internet', 'social-network', 'stackoverflow', 'reputation'];
+    var objectTags = ['internet', 'social-graph', 'stackoverflow', 'reputation'];
     var actionTags = ['sample'];
     assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, 'property') === false);
   });
 
-  it('prevents instagram', function () {
-    var objectTags = ['internet', 'social-network', 'instagram'];
+  it('allows instagram', function () {
+    var objectTags = ['internet', 'social-graph', 'instagram', 'inbound', 'follower'];
     var actionTags = ['sample'];
-    assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, 'property') === false);
+    assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, 'property') === true);
   });
 
   it('prevents foursquare', function () {
-    var objectTags = ['internet', 'social-network', 'foursquare', 'social-graph', 'inbound', 'follower'];
+    var objectTags = ['internet', 'social-graph', 'foursquare', 'social-graph', 'inbound', 'follower'];
     var actionTags = ['sample'];
     assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, 'property') === false);
   });
 
   it('prevents hackernews', function () {
-    var objectTags = ['internet', 'social-network', 'hackernews'];
+    var objectTags = ['internet', 'social-graph', 'hackernews'];
     var actionTags = ['sample'];
     assert(filtering.generateCardsForRollupProperty(objectTags, actionTags, 'property') === false);
   });
