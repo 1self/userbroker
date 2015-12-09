@@ -40,7 +40,7 @@ describe('isFirstSync', function() {
         };
 
         var streamEvent = {
-            streamid: 1,
+            streamid: 1
         };
 
         var user = {
@@ -65,7 +65,7 @@ describe('isFirstSync', function() {
 
 describe('getSortedUsers', function() {
     it('sorts', function() {
-        var users = {}
+        var users = [
         	{username: "zzz"},
         	{username: "qqq"},
         	{username: "hhh"},

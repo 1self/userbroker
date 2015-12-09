@@ -16,7 +16,8 @@ var logger = {
 		info: [],
 		warn: [],
 		debug: [],
-		silly: []
+		silly: [],
+    error: [] 
 	}
 };
 
@@ -49,6 +50,13 @@ logger.silly = function(message, meta) {
     console.log(message);
     console.log(JSON.stringify(meta));
     logger.messages.silly.push(message);
+};
+
+
+logger.error = function(message, meta) {
+    console.log(message);
+    console.log(JSON.stringify(meta));
+    logger.messages.error.push(message);
 };
 
 userbroker.setLogger(logger);
@@ -127,7 +135,8 @@ userbroker.setUserRollupRepo(userRollupsRepo);
 userbroker.loadUsers(userRepo, function(){});
 
 var streamMessage = {
-	streamid: '1'
+	streamid: '1',
+  dateTime: '2015-06-01T13:00:00.000Z'
 };
 
 describe('userbroker node module', function () {

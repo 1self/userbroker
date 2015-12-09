@@ -16,6 +16,8 @@ describe('emailMessage', function() {
 
     		}
     	];
-        emailMessage.process(message, email, users);
+
+        //emailMessage.process(message, email, users);
+        assert(false, 'test to be implemented');
     });
 });

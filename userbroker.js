@@ -5,6 +5,8 @@ var cardSchedule = require('./cardSchedule');
 var cards = require('./cards');
 var eventReplayer = require('./eventReplayer');
 var bulletin = require('./bulletin');
+var email = require('./email');
+var emailMessage = require('./emailMessage');
 var winston = require('winston');
 var _ = require('lodash');
 var path = require('path');
@@ -668,6 +670,10 @@ var processUserBrokerChannel = function(message){
 		logger.level = message.split('=')[1];
 		logger[logger.level]('userbroker', 'logging level set to ' + logger.level);
 	}
+	else if(emailMessage.handle(message)){
+		emailMessage.process(message, email, users);
+	}
+	
 };
 
 var channels = {
