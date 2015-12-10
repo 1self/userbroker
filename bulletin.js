@@ -98,7 +98,7 @@ var getTheLastBulletinDate = function(repos, user){
 			}
 		});
 	});
-}
+};
 
 var getAllTimeHighestSoftwareDevelop = function(params){
 	return q.Promise(function(resolve, reject){
@@ -132,8 +132,8 @@ var getAllTimeHighestSoftwareDevelop = function(params){
 				resolve(params);
 			}
 		});
-	})
-}
+	});
+};
 
 var getFastestFingersDayForBulletin = function(params){
 	return q.Promise(function(resolve, reject){
@@ -169,8 +169,8 @@ var getFastestFingersDayForBulletin = function(params){
 				resolve(params);
 			}
 		});
-	})
-}
+	});
+};
 
 var createBulletin = function(params){
 	return q.Promise(function(resolve, reject){
@@ -196,7 +196,7 @@ var createBulletin = function(params){
 			}
 		});
 	});
-}
+};
 
 var send = function(repos, users){
 	logger.info('preparing bulletin ', '', moment().toISOString());
@@ -212,7 +212,7 @@ var send = function(repos, users){
 			logger.error(user.username, error);
 		})
 		.done();
-	})
+	});
 };
 
 
