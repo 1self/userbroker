@@ -10,14 +10,49 @@ describe('emailMessage', function() {
 
     it('processes all users', function() {
     	var message = '/email';
-    	var users = [
-    		{
+    	var users = {
+    		'test1': {
     			username: 'test1',
-
+                emailSettings: {
+                    cards: {
+                        frequency: 'daily'
+                    }
+                }
     		}
-    	];
+    	};
 
-        //emailMessage.process(message, email, users);
-        assert(false, 'test to be implemented');
+        var cardsRepo = {};
+
+        var sendEmail = function(user, repo){
+            assert.equal(user.username, 'test1');
+            assert.deepEqual(repo, cardsRepo);
+        };
+
+        return emailMessage.process(message, users, cardsRepo, sendEmail);
+
+    });
+
+    it('processes specific user', function() {
+        var message = '/email/user/test1';
+        var users = {
+            'test1': {
+                username: 'test1',
+                emailSettings: {
+                    cards: {
+                        frequency: 'daily'
+                    }
+                }
+            }
+        };
+
+        var cardsRepo = {};
+
+        var sendEmail = function(user, repo){
+            assert.equal(user.username, 'test1');
+            assert.deepEqual(repo, cardsRepo);
+        };
+
+        return emailMessage.process(message, users, cardsRepo, sendEmail);
+
     });
 });

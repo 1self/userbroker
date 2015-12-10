@@ -79,7 +79,7 @@ var sendToSendGrid = function(email, sendGrid){
 
 };
 
-var getCardsFromDatabase = function(user, cards, from){
+var getCardsFromDatabase = function(user, repo, from){
 	var query = {};
     query.$query = {
         userId: user._id,
@@ -97,7 +97,7 @@ var getCardsFromDatabase = function(user, cards, from){
         cardDate: 1
     };
 
-	return cards.find(query).toArray();
+	return repo.find(query).toArray();
 };
 
 var sendEmail = function(user, cardsRepo, sendGrid){
@@ -113,9 +113,35 @@ var sendEmail = function(user, cardsRepo, sendGrid){
 	});
 };
 
+// This treats the first incomplete week of the year 
+Date.prototype.getWeek = function() {
+	var onejan = new Date(this.getFullYear(),0,1);
+	return Math.ceil((((this - onejan) / 86400000) + onejan.getDay()+1)/7);
+};
+
+var shouldSendEmail = function(user, now){
+	var result = false;
+	if(user.emailSettings.cards.frequency === 'daily'){
+		result = true;
+	} else if(user.emailSettings.cards.frequency === 'weekly'){
+		result = now.getDay() === 0;
+	}
+	else if(user.emailSettings.cards.frequency === 'biweekly'){
+		result = (now.getWeek() - 2) % 2 === 0;
+	}
+	else if(user.emailSettings.cards.frequency === 'fourweekly'){
+		console.log(now.getWeek());
+		result = (now.getWeek() - 2) % 4 === 0;
+	}
+
+	return result;
+};
+
 module.exports.createEmail = createEmail;
 module.exports.sendEmail = sendEmail;
 module.exports.sendToSendGrid = sendToSendGrid;
 module.exports.setLogger = setLogger;
+module.exports.shouldSendEmail = shouldSendEmail;
+
 
 

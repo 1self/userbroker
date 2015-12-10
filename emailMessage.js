@@ -3,6 +3,7 @@
 var utils = require('./emailMessageUtils.js');
 var q = require('Q');
 var _ = require('lodash');
+var sendGrid = require('sendGrid');
 
 var logger;
 
@@ -12,18 +13,24 @@ var handle = function(message){
 
 
 
-var process = function(message, users, cardsRepo){
-	var matches = /^\/email\/user\/([-a-zA-Z0-9]+)$/.exec(message);
-	var username = matches[1];
+var process = function(message, users, cardsRepo, sendEmail){
+	if(!sendEmail){
+		sendEmail = utils.sendEmail;
+	}
+
 	var result;
+	var matches = /^\/email\/user\/([-a-zA-Z0-9]+)$/.exec(message);
 	
-	if(username){
-		utils.sendCardsEmail(users[username], cardsRepo);
+	if(matches){
+		var username = matches[1];
+		sendEmail(users[username], cardsRepo, sendGrid);
 	}
 	else{
-		result = q.Promise();
+		result = q();
 		_.forEach(users, function(user){
-			result.then(utils.sendEmail(user));
+			if(utils.shouldSendEmail(user, Date.now())){
+				result = result.then(sendEmail(user, cardsRepo, sendGrid));
+			}
 		});
 	}
 

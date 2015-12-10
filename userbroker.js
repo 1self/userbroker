@@ -671,7 +671,7 @@ var processUserBrokerChannel = function(message){
 		logger[logger.level]('userbroker', 'logging level set to ' + logger.level);
 	}
 	else if(emailMessage.handle(message)){
-		emailMessage.process(message, email, users);
+		emailMessage.process(message, users, cards);
 	}
 	
 };
