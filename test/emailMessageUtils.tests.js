@@ -120,6 +120,18 @@ describe('shouldSendEmail', function() {
       
     });
 
+    it('never', function() {
+        var user = {
+            emailSettings: {
+                cards: {
+                    frequency: 'never'
+                }
+            }
+        };
+
+        assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-01-01"))) === false);
+    });
+
     it('weekly, beginning of year', function() {
         var user = {
             emailSettings: {
