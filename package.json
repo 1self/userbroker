@@ -24,6 +24,7 @@
     "q": "^1.4.1",
     "redis": "^0.12.1",
     "request": "^2.55.0",
+    "sendgrid": "^2.0.0",
     "swig-email-templates": "^1.4.0",
     "twix": "^0.7.0",
     "underscore": "^1.8.3",

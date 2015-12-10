@@ -1,7 +1,7 @@
 'use strict';
 
 var utils = require('./emailMessageUtils.js');
-var q = require('Q');
+var q = require('q');
 var _ = require('lodash');
 var sendGrid = require('sendgrid')(process.env.SENDGRID_USERNAME, process.env.SENDGRID_PASSWORD);
 
