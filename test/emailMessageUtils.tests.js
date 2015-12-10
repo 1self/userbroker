@@ -83,8 +83,23 @@ describe('sendToSendGrid', function() {
         return utils.sendToSendGrid(email, sendGrid);
         
     });
+});
 
-   
+describe('sendToSendGrid', function() {
+    it('doesnt send when email is empty', function() {
+        var email = {
+        };
+
+        var sendGrid = {
+            send: function(sendGridEmail, callback){
+                assert(false, 'send shouldn\'t have been called');
+                callback(null, '');
+            }
+        };
+
+        return utils.sendToSendGrid(email, sendGrid);
+        
+    });
 });
 
 describe('shouldSendEmail', function() {
@@ -176,5 +191,31 @@ describe('shouldSendEmail', function() {
         assert(utils.shouldSendEmail(user, new Date(Date.parse("2016-01-24"))) === false); // sun
         assert(utils.shouldSendEmail(user, new Date(Date.parse("2016-02-01"))) === true); // sun
     });
+});
 
+describe('sendEmail', function() {
+    it('collects params and sends', function() {
+        var email = {
+            fromAddress: 'team@1self.co',
+            toAddress: 'test@example.com',
+            username: 'testuser',
+            html: '<html></html>',
+            cardCount: ' 1 card'
+        };
+
+        var sendGrid = {
+            send: function(sendGridEmail, callback){
+                assert.equal(sendGridEmail.to, 'test@example.com');
+                assert.equal(sendGridEmail.from, 'testfrom@example.com');
+                assert.equal(sendGridEmail.to, 'test@example.com');
+                assert.equal(sendGridEmail.to, 'test@example.com');
+                callback(null, '');
+            }
+        };
+
+        return utils.sendToSendGrid(email, sendGrid);
+        
+    });
+
+   
 });

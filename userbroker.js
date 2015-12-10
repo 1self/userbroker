@@ -113,6 +113,7 @@ var setLogger = function(l){
 
 	eventReplayer.setLogger(l);
 	bulletin.setLogger(l);
+	emailMessage.setLogger(l);
 };
 
 setLogger(winston);
@@ -671,7 +672,7 @@ var processUserBrokerChannel = function(message){
 		logger[logger.level]('userbroker', 'logging level set to ' + logger.level);
 	}
 	else if(emailMessage.handle(message)){
-		emailMessage.process(message, users, cards);
+		emailMessage.processMessage(message, users, repos.cards);
 	}
 	
 };
@@ -699,8 +700,12 @@ var loadUsers = function(userRepository, callback){
 	var projection = {
 		username: true,
 		streams: true,
-		_id: true
+		emailSettings: true,
+		_id: true,
 	};
+
+	projection["profile.provider"] = true;
+	projection["profile.emails"] = true;
 
 	userRepository.find({}, projection).toArray(function(error, docs){
 		logger.debug('loading users', 'database call complete');

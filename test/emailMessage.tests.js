@@ -28,7 +28,7 @@ describe('emailMessage', function() {
             assert.deepEqual(repo, cardsRepo);
         };
 
-        return emailMessage.process(message, users, cardsRepo, sendEmail);
+        return emailMessage.processMessage(message, users, cardsRepo, sendEmail);
 
     });
 
@@ -52,7 +52,7 @@ describe('emailMessage', function() {
             assert.deepEqual(repo, cardsRepo);
         };
 
-        return emailMessage.process(message, users, cardsRepo, sendEmail);
+        return emailMessage.processMessage(message, users, cardsRepo, sendEmail);
 
     });
 });

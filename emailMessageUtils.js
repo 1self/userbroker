@@ -60,6 +60,11 @@ var createEmail = function(cards, user){
 
 var sendToSendGrid = function(email, sendGrid){
 	return q.Promise(function(resolve, reject){
+		if(!email.toAddress){
+			resolve({message: 'no email to send'});
+			return;
+		}
+
 		var sendGridEmail = {
 			to: email.toAddress,
 			from: process.env.ONESELF_EMAIL,
@@ -109,7 +114,7 @@ var sendEmail = function(user, cardsRepo, sendGrid){
 		return createEmail(filteredCards, user);
 	})
 	.then(function(email){
-		return sendToSendGrid(email, user, sendGrid);
+		return sendToSendGrid(email, sendGrid);
 	});
 };
 
@@ -130,7 +135,6 @@ var shouldSendEmail = function(user, now){
 		result = (now.getWeek() - 2) % 2 === 0;
 	}
 	else if(user.emailSettings.cards.frequency === 'fourweekly'){
-		console.log(now.getWeek());
 		result = (now.getWeek() - 2) % 4 === 0;
 	}
 

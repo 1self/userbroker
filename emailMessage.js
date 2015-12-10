@@ -3,7 +3,7 @@
 var utils = require('./emailMessageUtils.js');
 var q = require('Q');
 var _ = require('lodash');
-var sendGrid = require('sendGrid');
+var sendGrid = require('sendgrid')(process.env.SENDGRID_USERNAME, process.env.SENDGRID_PASSWORD);
 
 var logger;
 
@@ -13,7 +13,7 @@ var handle = function(message){
 
 
 
-var process = function(message, users, cardsRepo, sendEmail){
+var processMessage = function(message, users, cardsRepo, sendEmail){
 	if(!sendEmail){
 		sendEmail = utils.sendEmail;
 	}
@@ -28,8 +28,10 @@ var process = function(message, users, cardsRepo, sendEmail){
 	else{
 		result = q();
 		_.forEach(users, function(user){
-			if(utils.shouldSendEmail(user, Date.now())){
-				result = result.then(sendEmail(user, cardsRepo, sendGrid));
+			if(utils.shouldSendEmail(user, new Date())){
+				result = result.then(function(){
+					return sendEmail(user, cardsRepo, sendGrid);
+				});
 			}
 		});
 	}
@@ -39,6 +41,7 @@ var process = function(message, users, cardsRepo, sendEmail){
 
 var setLogger = function (newLogger){
 	logger = Object.create(newLogger);
+	utils.setLogger(logger);
 	logger.info = function(key, message, data){
 		if(data !== undefined && data !== null){
 			newLogger.info('emailMessage: %s: %s, %s', 	key, message, data);
@@ -98,4 +101,4 @@ var setLogger = function (newLogger){
 module.exports = {};
 module.exports.setLogger = setLogger;
 module.exports.handle = handle;
-module.exports.process = process;
+module.exports.processMessage = processMessage;
