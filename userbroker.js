@@ -5,7 +5,6 @@ var cardSchedule = require('./cardSchedule');
 var cards = require('./cards');
 var eventReplayer = require('./eventReplayer');
 var bulletin = require('./bulletin');
-var email = require('./email');
 var emailMessage = require('./emailMessage');
 var winston = require('winston');
 var _ = require('lodash');
