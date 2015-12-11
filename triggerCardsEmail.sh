@@ -1,1 +1,1 @@
-echo "PUBLISH userbroker email" | redis-cli
+echo "PUBLISH userbroker /email" | redis-cli
