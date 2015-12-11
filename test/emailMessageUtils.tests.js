@@ -236,3 +236,17 @@ describe('sendEmail', function() {
 
    
 });
+
+describe('getEnvironment', function() {
+    it('live is blank string', function() {
+        assert.equal(utils.getEnvironment('prod'), '');
+    });
+
+    it('staging is STAGING', function() {
+        assert.equal(utils.getEnvironment('staging'), 'STAGING');
+    });
+
+    it('dev is DEVELOPMENT', function() {
+        assert.equal(utils.getEnvironment('dev'), 'DEVELOPMENT');
+    });
+});

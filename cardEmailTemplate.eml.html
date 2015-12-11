@@ -5,19 +5,59 @@ table, th, td {
     border-collapse: collapse;
 }
 
-p {
-    padding: 5px 0 5px 0;
+body {
+	background-color: #FFFFFF;
 }
 
+p {
+    padding: 5px 0 5px 0;
+    font-family: "helvetica", sans-serif;
+}
+
+#browse {
+	padding: 1px 0 1px p;
+	border-style: solid;
+    border-radius: 100px;
+    padding-top: 0.3em;
+    padding-bottom: 0.3em;
+    font-size: 2em;
+    width: 9em;
+    padding-left: 1em;
+    padding-right: 1em;
+    background-color: #00b698;
+    border-color: #84FFEB;
+    margin-bottom: 1em;
+	}
+
+#stack {
+	border-radius: 48px;
+    border-color: #ABFFF7;
+    border-width: 2px;
+    border-style: solid;
+}
+
+a {
+    color: #FFFFFF;
+    font-family: 'raleway', helvetica, sans-serif
+}
 </style>
 
 <div>
   Hi {{username}}, <br />
 
-  <h2>You've got {{cardCount}} waiting for you:</h2>
+  <h2>You've got {{cardCount}} waiting for you</h2>
   
-  <p>Cards show your remarkable self, browse to 1self to see them</p>
+  <p>Cards highlight the things you do that are worth observing and remarking upon.</p>
+
+  <div id='browse'><a href='https://www.1self.co/card-stack'>Browse your cards</a></div>
+
+  <p>Your cards appear in a stack, like this:</p>
   
+  <a href="https://www.1self.co/card-stack" ><img id"stack" src="http://app.1self.co/img/cardStack.png"></img>
+
+  <p>You can swipe through your cards and hit 'more info' to flip the card and navigate your data.</p> 
+
   <p>Thanks! <b>1self</b></p>
-  <p>To unsubscribe from cards emails, reply to this email with the subject unsubscribe. </p>
+  <p>You'll receive a {{frequency}} email, whenever you have cards. To change the frequency of these emails, reply and tell us how often you'd like to get them. </p>
+
 </div>

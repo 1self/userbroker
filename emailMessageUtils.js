@@ -17,6 +17,19 @@ var setLogger = function(newLogger){
 };
 
 module.exports = {};
+
+var getEnvironment = function(envVar){
+	var result = '';
+	if(envVar === 'dev'){
+		result = 'DEVELOPMENT';
+	}	
+	else if(envVar === 'staging'){
+		result = 'STAGING';
+	}
+	
+	return result;
+};
+
 var createEmail = function(cards, user){
 	return q.Promise(function(resolve, reject){
 		emailTemplates(emailConfigOptions, function (err, emailRender) {
@@ -35,7 +48,7 @@ var createEmail = function(cards, user){
 
 			var context = {
 				username: user.username,
-				cardCount: cardCount
+				cardCount: cardCount,
 			};
 
 			logger.silly(user.username, 'rendering email for user', context);
@@ -48,11 +61,11 @@ var createEmail = function(cards, user){
 				}
 
 				var result = {
-					fromAddress: process.env.ONESELF_EMAIL,
 					toAddress: userModule.getEmail(user),
 					username: user.username,
 					cardCount: cardCount,
-					html: html
+					html: html,
+					environment: getEnvironment(process.env.ENV)
 				};
 
 				logger.silly(user.username, 'email created', result);
@@ -74,7 +87,8 @@ var sendToSendGrid = function(email, sendGrid){
 		var sendGridEmail = {
 			to: email.toAddress,
 			from: process.env.ONESELF_EMAIL,
-	        subject: email.username + ', ' + email.cardCount + ' are waiting for you',
+			fromname: process.env.ONESELF_EMAIL_NAME,
+	        subject: email.environment + ' ' + email.username + ', ' + email.cardCount + ' are waiting for you',
 	        html: email.html
 		};
 
@@ -159,6 +173,7 @@ module.exports.sendEmail = sendEmail;
 module.exports.sendToSendGrid = sendToSendGrid;
 module.exports.setLogger = setLogger;
 module.exports.shouldSendEmail = shouldSendEmail;
+module.exports.getEnvironment = getEnvironment;
 
 
 
