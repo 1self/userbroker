@@ -2,6 +2,9 @@
 
 var assert = require('assert');
 var utils = require('../emailMessageUtils.js');
+var logger = require('./testlogger.js').logger;
+
+utils.setLogger(logger);
 
 describe('createEmail', function() {
     it('inserts number of cards and username into template', function() {
@@ -35,7 +38,6 @@ describe('createEmail', function() {
 
     it('no cards results in empty html message', function() {
         var cards = [
-           
         ];
 
         var user = {
@@ -53,8 +55,11 @@ describe('createEmail', function() {
 
         return utils.createEmail(cards, user)
         .then(function(email){
+            var expected = {
+                username: 'testuser'
+            };
 
-            assert.deepEqual(email, {});
+            assert.deepEqual(email, expected);
         });
         
     });

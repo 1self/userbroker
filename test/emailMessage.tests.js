@@ -2,6 +2,9 @@
 
 var assert = require('assert');
 var emailMessage = require('../emailMessage.js');
+var logger = require('./testlogger.js').logger;
+
+emailMessage.setLogger(logger);
 
 describe('emailMessage', function() {
     it('recognises email all users', function() {

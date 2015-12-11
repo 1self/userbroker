@@ -3,19 +3,7 @@
 var assert = require('assert');
 var ObjectId = require('mongodb').ObjectID;
 var cardFilters = require('../cardFilters');
-
-var logger = {
-  messages:{
-    verbose: [],
-    info: [],
-    warn: [],
-    debug: [],
-    silly: []
-  },
-  debug: function(message){
-    this.messages.debug.push(message);
-  }
-};
+var logger = require('./testlogger.js');
 
 describe('cardfilters toDisplay', function () {
   it('filters out bottom 10', function () {

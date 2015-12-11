@@ -26,7 +26,8 @@ var createEmail = function(cards, user){
 			}
 
 			if(cards.length === 0){
-				resolve({});
+				logger.debug(user.username, 'no cards for user, will not send email');
+				resolve({username: user.username});
 				return;
 			}
 
@@ -37,8 +38,11 @@ var createEmail = function(cards, user){
 				cardCount: cardCount
 			};
 
+			logger.silly(user.username, 'rendering email for user', context);
+
 			emailRender('cardEmailTemplate.eml.html', context, function(renderErr, html){
 				if(renderErr){
+					logger.error(user.username, 'email render error occurred', renderErr);
 					reject(renderErr);
 					return;
 				}
@@ -51,6 +55,7 @@ var createEmail = function(cards, user){
 					html: html
 				};
 
+				logger.silly(user.username, 'email created', result);
 				resolve(result);
 			});
 		});	
@@ -61,6 +66,7 @@ var createEmail = function(cards, user){
 var sendToSendGrid = function(email, sendGrid){
 	return q.Promise(function(resolve, reject){
 		if(!email.toAddress){
+			logger.silly(email.username, 'skipping email send');
 			resolve({message: 'no email to send'});
 			return;
 		}
@@ -71,12 +77,15 @@ var sendToSendGrid = function(email, sendGrid){
 	        subject: email.username + ', ' + email.cardCount + ' are waiting for you',
 	        html: email.html
 		};
+
+		logger.silly(email.username, 'sending email to sendgrid', sendGridEmail);
 	
 		sendGrid.send(sendGridEmail, function (err, response) {
             if (err) {
                 logger.error('unable to send cards email', err);
                 reject(err);
             } else {
+            	logger.info(email.username, 'cards email sent');
                 resolve(response);
             }
         });
@@ -102,10 +111,12 @@ var getCardsFromDatabase = function(user, repo, from){
         cardDate: 1
     };
 
+    logger.silly(user.username, 'querying database for cards', query);
 	return repo.find(query).toArray();
 };
 
 var sendEmail = function(user, cardsRepo, sendGrid){
+	logger.debug(user.username, 'starting the send email process');
 	return getCardsFromDatabase(user, cardsRepo)
 	.then(function(cards){
 		return cardFilters.filterCards(logger, user, user.username, 0.5, undefined, cards, true);
@@ -137,6 +148,8 @@ var shouldSendEmail = function(user, now){
 	else if(user.emailSettings.cards.frequency === 'fourweekly'){
 		result = (now.getWeek() - 2) % 4 === 0;
 	}
+
+	logger.silly(user.username, 'should send email', result);
 
 	return result;
 };

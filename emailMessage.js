@@ -14,6 +14,7 @@ var handle = function(message){
 
 
 var processMessage = function(message, users, cardsRepo, sendEmail){
+	logger.info('processing email send request');
 	if(!sendEmail){
 		sendEmail = utils.sendEmail;
 	}
@@ -22,10 +23,12 @@ var processMessage = function(message, users, cardsRepo, sendEmail){
 	var matches = /^\/email\/user\/([-a-zA-Z0-9]+)$/.exec(message);
 	
 	if(matches){
+		logger.debug('sending email to individual user');
 		var username = matches[1];
 		sendEmail(users[username], cardsRepo, sendGrid);
 	}
 	else{
+		logger.debug('sending email to all users');
 		result = q();
 		_.forEach(users, function(user){
 			if(utils.shouldSendEmail(user, new Date())){
