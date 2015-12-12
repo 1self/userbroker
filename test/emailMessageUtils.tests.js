@@ -11,7 +11,11 @@ describe('createEmail', function() {
         process.env.ONESELF_EMAIL = 'testfrom@example.com';
 
         var cards = [
-            {type: 'test'}
+            {
+                type: 'test',
+                objectTags: ['tag1'],
+                actionTags: ['tag2']
+            }
         ];
 
         var user = {
@@ -28,10 +32,10 @@ describe('createEmail', function() {
         return utils.createEmail(cards, user)
         .then(function(email){
             assert(/Hi testuser,/.test(email.html));
-            assert(/1 card/.test(email.html));
+            assert(/1 remarkable card/.test(email.html));
             assert.equal('test@example.com', email.toAddress);
             assert.equal('testuser', email.username);
-            assert.equal('1 card', email.cardCount);
+            assert.equal('1 remarkable card', email.cardCount);
         });
         
     });
@@ -250,3 +254,98 @@ describe('getEnvironment', function() {
         assert.equal(utils.getEnvironment('dev'), 'DEVELOPMENT');
     });
 });
+
+describe('getTags', function() {
+    it('cards without object tags ignored', function() {
+        var cards = [
+            {
+            }
+        ];
+
+        assert.deepEqual(utils.getTags(cards).length, 0);
+    });
+
+    it('single card gives back tags', function() {
+        var cards = [
+            {
+                objectTags: ['tag1'],
+                actionTags: ['tag2']
+            }
+        ];
+
+        assert.deepEqual(utils.getTags(cards)[0], ['tag1', 'tag2']);
+    });
+
+    it('2 cards with same tags gives one tag collection', function() {
+        var cards = [
+            {
+                objectTags: ['tag1'],
+                actionTags: ['tag2']
+            },
+            {
+                objectTags: ['tag1'],
+                actionTags: ['tag2']
+            }
+
+        ];
+
+        assert.equal(utils.getTags(cards).length, 1);
+    });
+
+    it('2 cards with different tags gives two tag collections', function() {
+        var cards = [
+            {
+                objectTags: ['tag1'],
+                actionTags: ['tag2']
+            },
+            {
+                objectTags: ['tag3'],
+                actionTags: ['tag4']
+            }
+
+        ];
+
+        assert.equal(utils.getTags(cards).length, 2);
+        assert.deepEqual(utils.getTags(cards)[0], ['tag1', 'tag2']);
+        assert.deepEqual(utils.getTags(cards)[1], ['tag3', 'tag4']);
+    });
+
+    // overlapping tags between two collections are not de-duped
+    it('tag collections are identified by all their tags', function() {
+        var cards = [
+            {
+                objectTags: ['tag1'],
+                actionTags: ['tag2']
+            },
+            {
+                objectTags: ['tag2'],
+                actionTags: ['tag3']
+            }
+        ];
+
+        assert.equal(utils.getTags(cards).length, 2);
+        assert.deepEqual(utils.getTags(cards)[0], ['tag1', 'tag2']);
+        assert.deepEqual(utils.getTags(cards)[1], ['tag2', 'tag3']);
+    });
+});
+
+describe('turnTagsIntoHtml', function() {
+    it('empty tags results in empty unordered list', function() {
+        var tags = [
+        ];
+
+        var actual = utils.turnTagsIntoHtml(tags);
+        assert.equal('<ul></ul>', actual);
+    });
+
+    it('tags turn to html', function() {
+        var tags = [
+            ['tag1', 'tag2'],
+            ['tag3', 'tag4'],
+        ];
+
+        var actual = utils.turnTagsIntoHtml(tags);
+        assert.equal('<ul><li><span class=\'tag\'>tag1</span><span class=\'tag\'>tag2</span></li><li><span class=\'tag\'>tag3</span><span class=\'tag\'>tag4</span></li></ul>', actual);
+    });
+});
+

@@ -1,3 +1,4 @@
+
 <style type="text/css">
 table, th, td {
     border: 1px solid black;
@@ -7,20 +8,22 @@ table, th, td {
 
 body {
 	background-color: #FFFFFF;
+	font-size: 1em;
 }
 
 p {
-    padding: 5px 0 5px 0;
     font-family: "helvetica", sans-serif;
+    font-size: 1.0em;
 }
 
 #browse {
+	margin-top: 0.4em;
 	padding: 1px 0 1px p;
 	border-style: solid;
     border-radius: 100px;
     padding-top: 0.3em;
     padding-bottom: 0.3em;
-    font-size: 2em;
+    font-size: 1.8em;
     width: 9em;
     padding-left: 1em;
     padding-right: 1em;
@@ -34,30 +37,81 @@ p {
     border-color: #ABFFF7;
     border-width: 2px;
     border-style: solid;
+    width: 100%;
 }
 
 a {
     color: #FFFFFF;
-    font-family: 'raleway', helvetica, sans-serif
+    font-family: 'raleway', 'helvetica', sans-serif
+}
+
+.tag{
+	background-color: #D8D8D8;
+	border-radius: 4em;
+	padding: 0.2em 0.5em 0.2em 0.5em;
+	font-family: 'raleway', 'helvetica', sans-serif;
+	font-weight: 300;
+	font-size: 0.7em;
+	margin-right: 0.7em;
+	display: inline-block;
+	margin-bottom: 0.1em;
+	text-transform: uppercase;
+}
+
+h1 {
+	font-family: 'raleway', 'helvetica', sans-serif;
+	text-transform: uppercase;
+	font-weight: 300;
+	letter-spacing: 0em;
+	font-size: 3em;
+}
+
+#headline {
+	font-family: 'raleway', 'helvetica', sans-serif;
+}
+
+ul {
+	list-style: none;
+	padding-left: 0em;
+}
+
+ul > li {
+	margin-bottom: 0.4em;
+}
+
+h2 {
+	font-family: helvetica;
+	font-weight: 300;
+	font-size: 1.8em;
+}
+
+.footer {
+	color: #A7A7A7;
 }
 </style>
-
+<body>
 <div>
-  Hi {{username}}, <br />
+  <p>Hi {{username}},</p>
 
-  <h2>You've got {{cardCount}} waiting for you</h2>
-  
-  <p>Cards highlight the things you do that are worth observing and remarking upon.</p>
+  <h1 id='headline'>You've got {{cardCount}} waiting for you</h1>
 
   <div id='browse'><a href='https://www.1self.co/card-stack'>Browse your cards</a></div>
-
-  <p>Your cards appear in a stack, like this:</p>
+    
+  <p>Cards highlight the things you do that are worth observing and remarking upon.</p>
+  <p>Your cards were generated from data with these tags</p>
+  <p>
+  {% autoescape false %}{{tags}}{% endautoescape %}
+  </p>
   
-  <a href="https://www.1self.co/card-stack" ><img id"stack" src="http://app.1self.co/img/cardStack.png"></img>
+  <h2>More about cards</h2>
+  <p>Your cards are delivered to you in a stack, like this:</p>
+  
+  <a href="https://www.1self.co/card-stack" ><img id="stack" src="http://app.1self.co/img/cardStack.png"></img></a>
 
   <p>You can swipe through your cards and hit 'more info' to flip the card and navigate your data.</p> 
 
-  <p>Thanks! <b>1self</b></p>
-  <p>You'll receive a {{frequency}} email, whenever you have cards. To change the frequency of these emails, reply and tell us how often you'd like to get them. </p>
+  <p>Enjoy your cards, more card types coming soon, <br><b>the 1self bots</b></p>
+  <p class='footer'>You'll receive a {{frequency}} email, whenever you have cards. To change the frequency of these emails, or to unsubscribe, reply and tell us how often you'd like to get them. </p>
 
 </div>
+</body>

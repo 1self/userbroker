@@ -1,6 +1,7 @@
 'use strict';
 
 var q = require('q');
+var _ = require('lodash');
 
 //var _ = require('lodash');
 var emailTemplates = require('swig-email-templates');
@@ -30,6 +31,40 @@ var getEnvironment = function(envVar){
 	return result;
 };
 
+var getTags = function(cards){
+	var tags = {};
+	_.forEach(cards, function(c){
+
+		// some cards like the date card don't have\
+		// any object tags
+		if(c.objectTags === undefined){
+			return;
+		}
+
+		var cardTags = c.objectTags.concat(c.actionTags);
+		var key = cardTags.join(',');
+		if(tags[key] === undefined){
+			tags[key] = cardTags;
+		}
+	});
+	
+	return _.values(tags);
+};
+
+var turnTagsIntoHtml = function(tagsCollection){
+	var tagsHtml = '<ul>';
+	tagsHtml += _.map(tagsCollection, function(tags){
+		var result = '<li>';
+		result += _.map(tags, function(t){
+		    return '<span class="tag">' + t + '</span>';
+		}).join('');
+		result += '</li>';
+		return result;
+	}).join('');
+	tagsHtml += '</ul>';
+	return tagsHtml;
+};
+
 var createEmail = function(cards, user){
 	return q.Promise(function(resolve, reject){
 		emailTemplates(emailConfigOptions, function (err, emailRender) {
@@ -44,11 +79,14 @@ var createEmail = function(cards, user){
 				return;
 			}
 
-			var cardCount = cards.length === 1 ? '1 card' : cards.length + ' cards';
+			var cardCount = cards.length === 1 ? '1 remarkable card' : cards.length + ' remarkable cards';
 
+			var tags = getTags(cards);
+			var htmlForTags = turnTagsIntoHtml(tags);
 			var context = {
 				username: user.username,
 				cardCount: cardCount,
+				tags: htmlForTags
 			};
 
 			logger.silly(user.username, 'rendering email for user', context);
@@ -59,6 +97,8 @@ var createEmail = function(cards, user){
 					reject(renderErr);
 					return;
 				}
+
+				console.log(html);
 
 				var result = {
 					toAddress: userModule.getEmail(user),
@@ -168,12 +208,16 @@ var shouldSendEmail = function(user, now){
 	return result;
 };
 
+
+
 module.exports.createEmail = createEmail;
 module.exports.sendEmail = sendEmail;
 module.exports.sendToSendGrid = sendToSendGrid;
 module.exports.setLogger = setLogger;
 module.exports.shouldSendEmail = shouldSendEmail;
 module.exports.getEnvironment = getEnvironment;
+module.exports.getTags = getTags;
+module.exports.turnTagsIntoHtml = turnTagsIntoHtml;
 
 
 
