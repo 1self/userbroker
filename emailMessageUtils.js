@@ -56,7 +56,7 @@ var turnTagsIntoHtml = function(tagsCollection){
 	tagsHtml += _.map(tagsCollection, function(tags){
 		var result = '<li>';
 		result += _.map(tags, function(t){
-		    return '<span class="tag">' + t + '</span>';
+		    return '<span class=\'tag\'>' + t + '</span>';
 		}).join('');
 		result += '</li>';
 		return result;
@@ -86,7 +86,8 @@ var createEmail = function(cards, user){
 			var context = {
 				username: user.username,
 				cardCount: cardCount,
-				tags: htmlForTags
+				tags: htmlForTags,
+				frequency: user.emailSettings.cards.frequency
 			};
 
 			logger.silly(user.username, 'rendering email for user', context);

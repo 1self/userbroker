@@ -25,6 +25,11 @@ describe('createEmail', function() {
                 emails: [
                     {value: 'test@example.com'}
                 ]
+            },
+            emailSettings: {
+                cards: {
+                    frequency: 'daily'
+                }
             }
 
         };
@@ -36,6 +41,7 @@ describe('createEmail', function() {
             assert.equal('test@example.com', email.toAddress);
             assert.equal('testuser', email.username);
             assert.equal('1 remarkable card', email.cardCount);
+            assert(/a daily email/, email.frequency);
         });
         
     });
