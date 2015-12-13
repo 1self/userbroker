@@ -700,6 +700,7 @@ var loadUsers = function(userRepository, callback){
 		username: true,
 		streams: true,
 		emailSettings: true,
+		encodedUsername: true,
 		_id: true,
 	};
 

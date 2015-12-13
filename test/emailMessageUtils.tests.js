@@ -9,6 +9,7 @@ utils.setLogger(logger);
 describe('createEmail', function() {
     it('inserts number of cards and username into template', function() {
         process.env.ONESELF_EMAIL = 'testfrom@example.com';
+        process.env.ENV = 'prod';
 
         var cards = [
             {
@@ -30,18 +31,21 @@ describe('createEmail', function() {
                 cards: {
                     frequency: 'daily'
                 }
-            }
+            },
+            encodedUsername: '12345'
 
         };
 
-        return utils.createEmail(cards, user)
+        return utils.createEmail(cards, user, new Date(Date.parse('2015-12-01T00:00:00')))
         .then(function(email){
             assert(/Hi testuser,/.test(email.html));
             assert(/1 remarkable card/.test(email.html));
             assert.equal('test@example.com', email.toAddress);
             assert.equal('testuser', email.username);
             assert.equal('1 remarkable card', email.cardCount);
-            assert(/a daily email/, email.frequency);
+            assert('a daily email', email.frequency);
+            assert(/email=cards_2015-12-01&amp;emailId=12345/.test(email.html));
+            assert(/utm_campaign=cardsEmail/.test(email.html));
         });
         
     });

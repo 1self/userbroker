@@ -65,7 +65,7 @@ var turnTagsIntoHtml = function(tagsCollection){
 	return tagsHtml;
 };
 
-var createEmail = function(cards, user){
+var createEmail = function(cards, user, now){
 	return q.Promise(function(resolve, reject){
 		emailTemplates(emailConfigOptions, function (err, emailRender) {
 			if(err){
@@ -80,13 +80,17 @@ var createEmail = function(cards, user){
 			}
 
 			var cardCount = cards.length === 1 ? '1 remarkable card' : cards.length + ' remarkable cards';
-
 			var tags = getTags(cards);
 			var htmlForTags = turnTagsIntoHtml(tags);
+			var email = getEnvironment(process.env.ENV) + 'cards_' + now.toISOString().substr(0, 10);
+			var emailId = user.encodedUsername;
+
 			var context = {
 				username: user.username,
 				cardCount: cardCount,
 				tags: htmlForTags,
+				email: email,
+				emailId: emailId,
 				frequency: user.emailSettings.cards.frequency
 			};
 
@@ -175,7 +179,7 @@ var sendEmail = function(user, cardsRepo, sendGrid){
 		return cardFilters.filterCards(logger, user, user.username, 0.5, undefined, cards, true);
 	})
 	.then(function(filteredCards){
-		return createEmail(filteredCards, user);
+		return createEmail(filteredCards, user, new Date());
 	})
 	.then(function(email){
 		return sendToSendGrid(email, sendGrid);
