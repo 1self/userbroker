@@ -99,8 +99,6 @@ var createEmail = function(cards, user){
 					return;
 				}
 
-				console.log(html);
-
 				var result = {
 					toAddress: userModule.getEmail(user),
 					username: user.username,
