@@ -95,7 +95,7 @@ h2 {
 
   <h1 id='headline'>You've got {{cardCount}} waiting for you</h1>
 
-  <div id='browse'><a href="https://www.1self.co/card-stack?utm_campaign=development_cardsEmail_20151212&utm_medium=email&utm_source=cardsEmail&utm_content=email1">Browse your cards</a></div>
+  <div id='browse'><a href="https://www.1self.co/card-stack?email={{email}}&emailId={{emailId}}&utm_campaign=cardsEmail&utm_medium=email&utm_source={{email}}&utm_content=email1">Browse your cards</a></div>
     
   <p>Cards highlight the things you do that are worth observing and remarking upon.</p>
   <p>Your cards were generated from data with these tags</p>
@@ -106,9 +106,10 @@ h2 {
   <h2>More about cards</h2>
   <p>Your cards are delivered to you in a stack, like this:</p>
   
-  <a href="https://www.1self.co/card-stack?utm_campaign=development_cardsEmail_20151212&utm_medium=email&utm_source=cardsEmail&utm_content=email1"><img id="stack" src="http://app.1self.co/img/cardStack.png"></img></a>
+  <a href="https://www.1self.co/card-stack?email={{email}}&emailId={{emailId}}&utm_campaign=cardsEmail&utm_medium=email&utm_source={{email}}&utm_content=email1"><img id="stack" src="http://app.1self.co/img/cardStack.png"></img></a>
 
-  <img src="http://www.google-analytics.com/collect?v=1&tid=UA-54838479-1&cid=123456&t=event&ec=email&ea=open&el=123456&cs=cardsEmail&cm=email&cn=development_cardsEmail_20151212&cm1=1"/>
+
+  <img src="http://www.google-analytics.com/collect?v=1&tid=UA-54838479-1&cid={{emailId}}&t=event&ec=email&ea=open&el={{emailId}}&cs={{email}}&cm=email&cn=cardsEmail&cm1=1"/>
 
   <p>You can swipe through your cards and hit 'more info' to flip the card and navigate your data.</p> 
 
