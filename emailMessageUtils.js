@@ -83,14 +83,14 @@ var createEmail = function(cards, user, now){
 			var tags = getTags(cards);
 			var htmlForTags = turnTagsIntoHtml(tags);
 			var email = getEnvironment(process.env.ENV) + 'cards_' + now.toISOString().substr(0, 10);
-			var emailId = user.encodedUsername;
+			var trackingId = user.encodedUsername;
 
 			var context = {
 				username: user.username,
 				cardCount: cardCount,
 				tags: htmlForTags,
 				email: email,
-				emailId: emailId,
+				trackingId: encodeURIComponent(trackingId),
 				frequency: user.emailSettings.cards.frequency
 			};
 

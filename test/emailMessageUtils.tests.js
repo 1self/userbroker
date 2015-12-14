@@ -44,7 +44,7 @@ describe('createEmail', function() {
             assert.equal('testuser', email.username);
             assert.equal('1 remarkable card', email.cardCount);
             assert('a daily email', email.frequency);
-            assert(/email=cards_2015-12-01&amp;emailId=12345/.test(email.html));
+            assert(/email=cards_2015-12-01&amp;trackingId=12345/.test(email.html));
             assert(/utm_campaign=cardsEmail/.test(email.html));
         });
         
