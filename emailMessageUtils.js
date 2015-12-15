@@ -142,7 +142,7 @@ var sendToSendGrid = function(email, sendGrid){
                 logger.error('unable to send cards email', err);
                 reject(err);
             } else {
-            	logger.info(email.username, 'cards email sent');
+            	logger.info(email.username, 'cards email sent', email.toAddress);
                 resolve(response);
             }
         });
