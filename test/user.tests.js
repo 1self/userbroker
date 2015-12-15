@@ -137,4 +137,28 @@ describe('user', function() {
 
         assert.equal(userModule.getEmail(user), 'test1@example.com');
     });
+
+    it('verified non primary before verified primary', function() {
+        var user = {
+            profile: {
+                provider: 'github',
+                emails: [
+                    {value: null},
+                    {
+                        email : 'test1@example.com',
+                        primary: false,
+                        verified : true
+                    },
+                    {
+                        email : 'test2@example.com',
+                        primary: true,
+                        verified : true
+                    }
+                ]
+            }
+
+        };
+
+        assert.equal(userModule.getEmail(user), 'test2@example.com');
+    });
 });
