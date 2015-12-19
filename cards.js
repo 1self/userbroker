@@ -606,7 +606,7 @@ var generateCardsForDay = function(user, repos, params){
 
 		if(queryParams.objectTags === undefined)
 		{
-			condition.objectTags = {$nin: ['twitter', 'foursquare', 'hackernews', 'stackoverflow', 'instagram']};
+			condition.objectTags = {$nin: ['twitter', 'foursquare', 'stackoverflow', 'instagram']};
 		}
 		else{
 			condition.objectTags = {$all: queryParams.objectTags};
