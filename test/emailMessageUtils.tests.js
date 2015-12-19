@@ -283,7 +283,7 @@ describe('getTags', function() {
             }
         ];
 
-        assert.deepEqual(utils.getTags(cards)[0], ['tag1', 'tag2']);
+        assert.deepEqual(utils.getTags(cards), ['tag1', 'tag2']);
     });
 
     it('2 cards with same tags gives one tag collection', function() {
@@ -299,7 +299,7 @@ describe('getTags', function() {
 
         ];
 
-        assert.equal(utils.getTags(cards).length, 1);
+        assert.equal(utils.getTags(cards).length, 2);
     });
 
     it('2 cards with different tags gives two tag collections', function() {
@@ -315,9 +315,8 @@ describe('getTags', function() {
 
         ];
 
-        assert.equal(utils.getTags(cards).length, 2);
-        assert.deepEqual(utils.getTags(cards)[0], ['tag1', 'tag2']);
-        assert.deepEqual(utils.getTags(cards)[1], ['tag3', 'tag4']);
+        assert.equal(utils.getTags(cards).length, 4);
+        assert.deepEqual(utils.getTags(cards), ['tag1', 'tag2', 'tag3', 'tag4']);
     });
 
     // overlapping tags between two collections are not de-duped
@@ -333,9 +332,8 @@ describe('getTags', function() {
             }
         ];
 
-        assert.equal(utils.getTags(cards).length, 2);
-        assert.deepEqual(utils.getTags(cards)[0], ['tag1', 'tag2']);
-        assert.deepEqual(utils.getTags(cards)[1], ['tag2', 'tag3']);
+        assert.equal(utils.getTags(cards).length, 3);
+        assert.deepEqual(utils.getTags(cards), ['tag1', 'tag2', 'tag3']);
     });
 });
 
@@ -349,13 +347,10 @@ describe('turnTagsIntoHtml', function() {
     });
 
     it('tags turn to html', function() {
-        var tags = [
-            ['tag1', 'tag2'],
-            ['tag3', 'tag4'],
-        ];
+        var tags = ['tag1', 'tag2','tag3', 'tag4'];
 
         var actual = utils.turnTagsIntoHtml(tags);
-        assert.equal('<ul><li><span class=\'tag\'>tag1</span><span class=\'tag\'>tag2</span></li><li><span class=\'tag\'>tag3</span><span class=\'tag\'>tag4</span></li></ul>', actual);
+        assert.equal('<ul><li class=\'tag\'>tag1</li><li class=\'tag\'>tag2</li><li class=\'tag\'>tag3</li><li class=\'tag\'>tag4</li></ul>', actual);
     });
 });
 

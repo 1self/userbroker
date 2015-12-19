@@ -48,16 +48,14 @@ var getTags = function(cards){
 		}
 	});
 	
-	return _.values(tags);
+	return _(tags).values().flatten().uniq().value();
 };
 
 var turnTagsIntoHtml = function(tagsCollection){
 	var tagsHtml = '<ul>';
-	tagsHtml += _.map(tagsCollection, function(tags){
-		var result = '<li>';
-		result += _.map(tags, function(t){
-		    return '<span class=\'tag\'>' + t + '</span>';
-		}).join('');
+	tagsHtml += _.map(tagsCollection, function(tag){
+		var result = '<li class=\'tag\'>';
+		result += tag;
 		result += '</li>';
 		return result;
 	}).join('');

@@ -38,6 +38,7 @@ p {
     border-width: 2px;
     border-style: solid;
     width: 100%;
+    max-width: 474px;
 }
 
 a {
@@ -54,7 +55,7 @@ a {
 	font-size: 0.7em;
 	margin-right: 0.7em;
 	display: inline-block;
-	margin-bottom: 0.1em;
+	margin-bottom: 0.6em;
 	text-transform: uppercase;
 }
 
@@ -91,17 +92,20 @@ h2 {
 </style>
 <body>
 <div>
+  <p>
+  {% autoescape false %}{{tags}}{% endautoescape %}
+  </p>
   <p>Hi {{username}},</p>
+
+<!--<ul><li class='tag'>tag1</li><li class='tag'>tag2</li><li class='tag'>tag3</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li><li class='tag'>tag4</li></ul>-->
+
 
   <h1 id='headline'>You've got {{cardCount}} waiting for you</h1>
 
   <div id='browse'><a href="https://www.1self.co/card-stack?email={{email}}&trackingId={{trackingId}}&utm_campaign=cardsEmail&utm_medium=email&utm_source={{email}}&utm_content=email1">Browse your cards</a></div>
     
   <p>Cards highlight the things you do that are worth observing and remarking upon.</p>
-  <p>Your cards were generated from data with these tags</p>
-  <p>
-  {% autoescape false %}{{tags}}{% endautoescape %}
-  </p>
+  <p>Your cards were generated from data with the tags from the beginning of this email</p>
   
   <h2>More about cards</h2>
   <p>Your cards are delivered to you in a stack, like this:</p>
