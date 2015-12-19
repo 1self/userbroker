@@ -3,7 +3,6 @@ var _ = require('lodash');
 var logger = require('winston');
 
 // Set default node environment to development
-console.log(process === undefined);
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 var setLogger = function (newLogger){

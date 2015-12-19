@@ -183,7 +183,7 @@ var processEventsChannel = function(message){
 	}	
 
 	for (var i = 0; i < eventModules.length; i++) {
-		logger.silly(event.streamid, 'calling <proce></proce>ss event');
+		logger.silly(event.streamid, 'calling process event');
 		eventModules[i].processEvent(event, userForStream, repos);
 	}
 };
@@ -203,8 +203,6 @@ var processUserAdded = function(userEvent, userRepo){
 	var condition = {
 		username: userEvent.username
 	};
-
-
 
 	// Now go and get the whole of the user from the repo
 	userRepo.findOne(condition, function(error, user){
