@@ -181,6 +181,9 @@ var sendEmail = function(user, cardsRepo, sendGrid){
 	})
 	.then(function(email){
 		return sendToSendGrid(email, sendGrid);
+	})
+	.catch(function(error){
+		logger.error(user.username, 'error while sending email', error);
 	});
 };
 

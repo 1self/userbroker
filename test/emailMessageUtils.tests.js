@@ -136,6 +136,11 @@ describe('shouldSendEmail', function() {
         assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-01-03"))));
         assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-01-04"))));
         assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-01-05"))));
+        assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-01-06"))));
+        assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-01-07"))));
+        assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-01-08"))));
+        assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-01-09"))));
+        assert(utils.shouldSendEmail(user, new Date(Date.parse("2015-12-20"))));
       
     });
 
