@@ -877,13 +877,13 @@ var processCardSchedules = function(user, repos, streamEvent){
 var addSyncingCard = function(streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
 		var date = streamEvent.dateTime.substring(0, 10);
-		logger.silly(user.username, 'adding sync card', [date, streamEvent.appIdDb]);
+		logger.silly(user.username, 'adding sync card', [date, streamEvent.appId]);
 
 		var card = {};
 		card.userId = user._id;	
 		card.type = "datasyncing";
 		card.thumbnailMedia = 'chart.html';
-		card.appIdDb = streamEvent.appIdDb;
+		card.appId = streamEvent.appId;
 		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
 		card.published = true;
@@ -892,12 +892,12 @@ var addSyncingCard = function(streamEvent, user, repos){
 		logger.silly(user.username, 'Adding sync card, inserting ', card);
 		repos.cards.insert(card, function(error, response){
 			if(error){
-				logger.error(user.username, 'error inserting sync card', [error, streamEvent.appIdDb]);
+				logger.error(user.username, 'error inserting sync card', [error, streamEvent.appId]);
 				reject(error);			
 			}
 			else
 			{
-				logger.debug(user.username, 'sync card inserted', [streamEvent.appIdDb, response.result]);
+				logger.debug(user.username, 'sync card inserted', [streamEvent.appId, response.result]);
 				resolve();
 			}
 		});
@@ -907,18 +907,18 @@ var addSyncingCard = function(streamEvent, user, repos){
 var removeSyncingCard = function(streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
 		var date = streamEvent.dateTime.substring(0, 10);
-		logger.silly(user.username, 'removing syncing card', [date, streamEvent.appIdDb]);
+		logger.silly(user.username, 'removing syncing card', [date, streamEvent.appId]);
 		var condition = {
 			userId: user._id,
 			cardDate: date,
 			type: 'datasyncing',
-			appIdDb: streamEvent.appIdDb
+			appId: streamEvent.appId
 		};
 
 		logger.silly(user.username, 'removing syncing card, condition', condition);
 		repos.cards.remove(condition, function(error, response){
 			if(error){
-				logger.error(user.username, 'error removing sync card', [error, streamEvent.appIdDb]);
+				logger.error(user.username, 'error removing sync card', [error, streamEvent.appId]);
 				reject(error);
 			}
 			else{
@@ -932,12 +932,12 @@ var removeSyncingCard = function(streamEvent, user, repos){
 var addCardsGeneratingCard = function(streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
 		var date = streamEvent.dateTime.substring(0, 10);
-		logger.silly(user.username, 'adding cards generating card', [date, streamEvent.appIdDb]);
+		logger.silly(user.username, 'adding cards generating card', [date, streamEvent.appId]);
 		var card = {};
 		card.userId = user._id;	
 		card.type = "cardsgenerating";
 		card.thumbnailMedia = 'chart.html';
-		card.appIdDb = streamEvent.appIdDb;
+		card.appId = streamEvent.appId;
 		card.cardDate = date;
 		card.generatedDate = new Date().toISOString();
 		card.published = true;
@@ -946,12 +946,12 @@ var addCardsGeneratingCard = function(streamEvent, user, repos){
 
 		repos.cards.insert(card, function(error, response){
 			if(error){
-				logger.error(user.username, 'error inserting cards generating card', [error, streamEvent.appIdDb]);
+				logger.error(user.username, 'error inserting cards generating card', [error, streamEvent.appId]);
 				reject(error);			
 			}
 			else
 			{
-				logger.debug(user.username, 'cards generating card inserted', [streamEvent.appIdDb, response.result]);
+				logger.debug(user.username, 'cards generating card inserted', [streamEvent.appId, response.result]);
 				resolve();
 			}
 		});
@@ -961,18 +961,18 @@ var addCardsGeneratingCard = function(streamEvent, user, repos){
 var removeCardsGeneratingCard = function(streamEvent, user, repos){
 	return q.Promise(function(resolve, reject){
 		var date = streamEvent.dateTime.substring(0, 10);
-		logger.silly(user.username, 'removing cards generating card', [date, streamEvent.appIdDb]);
+		logger.silly(user.username, 'removing cards generating card', [date, streamEvent.appId]);
 		var condition = {
 			userId: user._id,
 			cardDate: date,
 			type: 'cardsgenerating',
-			appIdDb: streamEvent.appIdDb
+			appId: streamEvent.appId
 		};
 
 		logger.silly(user.username, 'removing cards condition', condition);
 		repos.cards.remove(condition, function(error, response){
 			if(error){
-				logger.error(user.username, 'error removing cards generating card', [error, streamEvent.appIdDb]);
+				logger.error(user.username, 'error removing cards generating card', [error, streamEvent.appId]);
 				reject(error);
 			}
 			else{
