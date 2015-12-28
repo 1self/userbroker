@@ -39,9 +39,9 @@ _.mixin({
 });
 
 exports.toDisplay = function(card){
-	if(card.type === undefined){
-		throw 'type is undefined';
-	}
+    if(card.type === undefined){
+        throw 'type is undefined';
+    }
     return card.type !== 'date' && 
     card.type !== 'bottom10' && 
     _.isEqual(card.objectTags, ["internet", "questions", "social-network", "stackoverflow"]) === false &&
@@ -50,12 +50,13 @@ exports.toDisplay = function(card){
 };
 
 exports.filterCards = function(logger, 
-	user, 
-	username, 
-	minStdDev, 
-	maxStdDev, 
-	unfilteredCards,
-	extraFiltering){
+    user, 
+    username, 
+    minStdDev, 
+    maxStdDev, 
+    unfilteredCards,
+    extraFiltering,
+    integrations){
     
     username = user ? user.username : username;
     logger.debug([username, "filtercards", "starting"].join(': '));
@@ -88,6 +89,8 @@ exports.filterCards = function(logger,
 
             if(!card.read && (card.type === 'datasyncing' || card.type === 'cardsgenerating')){
                 card.id = card._id;
+                card.serviceName = card.appDbId && integrations[card.appDbId] ? integrations[card.appDbId].title : '';
+                card.identifier = card.appDbId && integrations[card.appDbId] ? integrations[card.appDbId].urlName : '';
                 delete card._id;
                 syncingGeneratingCards.push(card);
             }
