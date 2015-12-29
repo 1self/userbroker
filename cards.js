@@ -1043,7 +1043,7 @@ var processEvent = function(streamEvent, user, repos){
 	else if(_.indexOf(streamEvent.actionTags, 'error') >= 0 || _.indexOf(streamEvent.actionTags, 'Error') >= 0 ){
 		logger.error(user.username, 'a sync error was seen');
 		// TODO: notify the user, check for a 401 and ask the user to re-auth
-		return;
+		return removeSyncingCard(streamEvent, user, repos).
 	}
 
 	logger.error(user.username, 'unknown sync type seen', [streamEvent.objectTags, streamEvent.actionTags]);
