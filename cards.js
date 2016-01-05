@@ -915,8 +915,12 @@ var removeSyncingCard = function(streamEvent, user, repos){
 			appDbId: streamEvent.appDbId
 		};
 
+		var options = {
+			multi: true
+		};
+
 		logger.silly(user.username, 'removing syncing card, condition', condition);
-		repos.cards.remove(condition, function(error, response){
+		repos.cards.remove(condition, options, function(error, response){
 			if(error){
 				logger.error(user.username, 'error removing sync card', [error, streamEvent.appDbId]);
 				reject(error);
@@ -969,8 +973,12 @@ var removeCardsGeneratingCard = function(streamEvent, user, repos){
 			appDbId: streamEvent.appDbId
 		};
 
+		var options = { 
+			multi: true
+		};
+
 		logger.silly(user.username, 'removing cards condition', condition);
-		repos.cards.remove(condition, function(error, response){
+		repos.cards.remove(condition, options, function(error, response){
 			if(error){
 				logger.error(user.username, 'error removing cards generating card', [error, streamEvent.appDbId]);
 				reject(error);
