@@ -14,7 +14,7 @@ var handle = function(message){
 
 
 var processMessage = function(message, users, cardsRepo, sendEmail){
-	logger.info('processing email send request');
+	logger.info('processing email send request', '');
 	if(!sendEmail){
 		sendEmail = utils.sendEmail;
 	}
