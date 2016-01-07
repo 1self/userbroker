@@ -233,6 +233,61 @@ var processUsersChannel = function(message){
 	}
 };
 
+var loadUsers = function(userRepository, callback){
+	logger.info('loading users', 'start');
+	var projection = {
+		username: true,
+		streams: true,
+		emailSettings: true,
+		encodedUsername: true,
+		_id: true,
+	};
+
+	projection["profile.provider"] = true;
+	projection["profile.emails"] = true;
+
+	userRepository.find({}, projection).toArray(function(error, docs){
+		logger.debug('loading users', 'database call complete');
+	
+		if(error){
+			logger.error('loading users', 'error while retrieving all users');
+			callback(error, null);
+			return;
+		}
+
+		logger.info('loading users', 'loaded ' + docs.length + ' users from the database');
+		_.map(docs, function(user){
+			if(user.username === undefined){
+				logger.warn('user found without a conforming schema, useranme missing: user: ', user);
+				return;
+			}
+			
+			cacheUser(user);
+		});
+
+		_.map(eventModules, function(module){
+			if(module.start){
+				module.start(repos);
+			}
+		});
+
+		callback(null, repos.user);	
+	});
+};
+
+var reloadUsers = function(){
+	return q.Promise(function(resolve, reject){
+		loadUsers(repos.user, function(error, userRepo){
+			if(error){
+				reject(error);
+			}
+			else{
+				resolve(userRepo);
+			}
+		});
+	});
+};
+
 var processUserBrokerChannel = function(message){
 	var processCronDailyMessageForDateAndTags = function(){
 		// date range, object tags, action tags
@@ -669,9 +724,12 @@ var processUserBrokerChannel = function(message){
 		logger[logger.level]('userbroker', 'logging level set to ' + logger.level);
 	}
 	else if(emailMessage.handle(message)){
-		emailMessage.processMessage(message, users, repos.cards);
+		reloadUsers()
+		.then(function(){
+			emailMessage.processMessage(message, users, repos.cards);	
+		})
+		.done();
 	}
-	
 };
 
 var channels = {
@@ -690,47 +748,6 @@ var subscribeMessage = function(channel, message){
 	else{
 		logger.info(channel, 'unknown event type');
 	}
-};
-
-var loadUsers = function(userRepository, callback){
-	logger.info('loading users', 'start');
-	var projection = {
-		username: true,
-		streams: true,
-		emailSettings: true,
-		encodedUsername: true,
-		_id: true,
-	};
-
-	projection["profile.provider"] = true;
-	projection["profile.emails"] = true;
-
-	userRepository.find({}, projection).toArray(function(error, docs){
-		logger.debug('loading users', 'database call complete');
-	
-		if(error){
-			logger.error('loading users', 'error while retrieving all users');
-			return;
-		}
-
-		logger.info('loading users', 'loaded ' + docs.length + ' users from the database');
-		_.map(docs, function(user){
-			if(user.username === undefined){
-				logger.warn('user found without a conforming schema, useranme missing: user: ', user);
-				return;
-			}
-			
-			cacheUser(user);
-		});
-
-		_.map(eventModules, function(module){
-			if(module.start){
-				module.start(repos);
-			}
-		});
-
-		callback();	
-	});
 };
 
 var setUserRepo = function(userRepo){
