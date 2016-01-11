@@ -910,7 +910,6 @@ var removeSyncingCard = function(streamEvent, user, repos){
 		logger.silly(user.username, 'removing syncing card', [date, streamEvent.appDbId]);
 		var condition = {
 			userId: user._id,
-			cardDate: date,
 			type: 'datasyncing',
 			appDbId: streamEvent.appDbId
 		};
