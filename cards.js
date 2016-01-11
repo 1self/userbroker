@@ -918,7 +918,7 @@ var removeSyncingCard = function(streamEvent, user, repos){
 			multi: true
 		};
 
-		logger.silly(user.username, 'removing syncing card, condition', condition);
+		logger.debug(user.username, 'removing syncing card, condition', condition);
 		repos.cards.remove(condition, options, function(error, response){
 			if(error){
 				logger.error(user.username, 'error removing sync card', [error, streamEvent.appDbId]);
