@@ -1,6 +1,7 @@
 'use strict';
 var q = require('q');
 var logger = require('winston');
+var utils = require('./eventReplayerUtils.js');
 
 q.longStackSupport = true;
 
@@ -65,6 +66,8 @@ var setLogger = function (newLogger){
 
 };
 
+
+
 var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink){
 	return q.Promise(function(resolve, reject){
 		logger.info(user.username, 'replaying events ', date);
@@ -80,10 +83,7 @@ var replayEvents = function(repos, user, date, objectTags, actionTags, eventSink
 		 	"payload.streamid": {
 		 		$in: user.streams.map(function(stream){return stream.streamid;})
 		 	},
-		 	"payload.dateTime": {
-		 		$gte: date, 
-		 		$lte: date + 'Z'
-		 	}
+		 	"payload.dateTime": utils.addDateTime(date)
 		};
 
 		if(objectTags.length > 0){

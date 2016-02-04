@@ -474,6 +474,41 @@ var processUserBrokerChannel = function(message){
 		.done();
 	};
 
+	var processEventReplayForDateRange = function(){
+		var matches = /^events\/replay\/date\/(.+Z-.+Z)$/.exec(message);
+
+		var date = matches[1];
+		logger.info(date, 'initiating event replay', {date: date});
+
+		var eventSink = function(event){
+			messagePublisher('events', JSON.stringify(event));
+		};
+
+		var promises = [];
+		_.forEach(users, function(user){
+			promises.push(function(){
+				return eventReplayer.replayEvents(repos, user, date, [], [], eventSink);
+			});
+		});
+		
+		promises.push(function(){
+			return q.Promise(function(){
+				logger.info(date, 'event replay finished');
+			});
+		});
+
+		//var promiseSequence = promises.reduce(q.when, q());
+		var result = q();
+		promises.forEach(function (f) {
+		    result = result.then(f);
+		});
+		
+		result.catch(function(error){
+			logger.error(error);
+		})
+		.done();
+	};
+
 	var processEventReplayForUserAndYear = function(){
 		var matches = /^events\/replay\/user\/([-a-zA-Z0-9]+)\/date\/(\d{4})$/.exec(message);
 		var user = matches[1];
@@ -655,6 +690,8 @@ var processUserBrokerChannel = function(message){
 		cards.archive(users, repos, params);
 	};
 
+
+
 	var processArchiveCards = function(message){
 		logger.info(message, 'requesting archive');
 		var params = {
@@ -697,6 +734,9 @@ var processUserBrokerChannel = function(message){
 	}
 	else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})$/.test(message)){
 		processEventReplayForDate();
+	}
+	else if(/^events\/replay\/date\/(.+Z-.+Z)$/.test(message)){
+		processEventReplayForDateRange();
 	}
 	else if(/^events\/replay\/date\/(\d{4}-\d{2}-\d{2})\/objectTags\/(.+)\/actionTags\/(.+)$/.test(message)){
 		processEventReplayForObjectTagsActionTagsDate();
